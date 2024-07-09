@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 from dash import Dash, html, dcc, callback, Output, Input, State
-import module as mod
+import module as mod # The plan is to put here the functions which do most of the work
 # import plotly.express as px
 
 # Style of the GUI
@@ -11,7 +11,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 
-# Layout of the page
+# Layout of the interface
 app.layout = html.Div([
     # Title
     html.H1(children = 'Simulation an data analysis for an optics experiment about spatial coherence'),
@@ -35,31 +35,31 @@ app.layout = html.Div([
 
     html.Div(children = 'Choose the geometry of the set-up'),
 
-    html.Div(children = 'Horizontal size of the source (cm)'),
+    html.Div(children = 'Size of the source [cm]'), # For now I consider only one transversal and one longitudinal dimension
     dcc.Slider(
-        5,
-        10,
-        step = 0.5,
-        value = 10,
+        0.1,
+        1,
+        step = 0.05,
+        value = 0.5,
         marks = {str(x): str(x) for x in np.arange(5, 10, 0.5)},
         id='hor-size'
     ),
-    html.Div(children = 'Vertical size of the source (cm)'),
-    dcc.Slider(
-        5,
-        10,
-        step = 0.5,
-        value = 10,
-        marks = {str(x): str(x) for x in np.arange(5, 10, 0.5)},
-        id='ver-size'
-    ),
-    html.Div(children = 'Distance from the source to the first image (cm)'),
+    # html.Div(children = 'Vertical size of the source [cm]'),
+    # dcc.Slider(
+    #     5,
+    #     10,
+    #     step = 0.5,
+    #     value = 10,
+    #     marks = {str(x): str(x) for x in np.arange(5, 10, 0.5)},
+    #     id='ver-size'
+    # ),
+    html.Div(children = 'Distance from the source to the first image [cm]'),
     dcc.Slider(
         10,
         50,
-        step = 0.5,
+        step = 5,
         value = 15,
-        marks = {str(x): str(x) for x in np.arange(5, 10, 0.5)},
+        marks = {str(x): str(x) for x in np.arange(10, 50, 5)},
         id='dist'
     ),
 
@@ -92,8 +92,10 @@ app.layout = html.Div([
         marks = {str(x): str(x) for x in np.arange(0, 30, 1)},
         id='correlation-length'
     ),
-    html.Div(children = 'Start simulation'),
-    html.Button(id='submit-button-state', n_clicks = 0, children='Enter'),
+    html.Div(children = 'START SIMULATION'),
+    html.Button(id='submit-button-state', n_clicks = 0, children='Start'), 
+
+    html.H2(children = 'Second part: propagation, spatial filtering and interference'), # Second part of the simulation
 
     html.Div(children = 'Type of filtering'),
     dcc.RadioItems(
@@ -102,5 +104,36 @@ app.layout = html.Div([
         id='filtering-type',
         inline=True
     ),
+
+    html.Div(children = 'Filtering [cm^(-1)]'), 
+    # I'm going to have a "screen dimension" of about x_M = 10 cm, with a resolution of dx = 0.05 cm, so the bounds in k-space are
+    # k_M = pi/dx = 62.8 cm^(-1) with step dk = pi/x_M = 0.314
+    # Note that here k = 2pi/lambda.
+    dcc.Slider( 
+        0.314,
+        62.8,
+        step = 0.314,
+        value = 10,
+        marks = {str(x): str(x * 0.314) for x in np.arange(1, 200, 1)},
+        id='filter-width'
+    ),
+
+    html.Div(children = 'Distance from slits to screen [cm]'),
+    dcc.Slider( 
+        10,
+        50,
+        step = 5,
+        value = 20,
+        marks = {str(x): str(x) for x in np.arange(1, 500, 1)},
+        id='dist-2'
+    ),
+
+    html.Div(children = 'START SIMULATION'),
+    html.Button(id='submit-button-state', n_clicks = 0, children='Start'), 
     
+    html.H2(children = 'Data Analysis') # Third part: data analysis
+
+    # I didn't do anything yet here
 ])
+
+# Here I should add the necessary callbacks
