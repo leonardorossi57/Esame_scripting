@@ -1,0 +1,33 @@
+div {
+    color: #000000;
+    font-family: Tahoma, Verdana, Segoe, sans-serif;
+    padding: 10px;
+}
+.container {
+    background-color: #f7ff5c;
+    display: flex;
+}
+.fixed {
+    background-color: #fbffb6;
+    width: 50vw;
+}
+.flex-item {
+    background-color: #fbffb6;
+    flex-grow: 1;
+}
+.layout {
+    background-color: #ffffff;
+}
+.inner {
+    background-color: #fbffb6;
+    width: 100vw;
+}
+.start {
+    text-align: center
+}
+H1, H2, H3 {
+    color: #000000;
+    font-family: Tahoma, Verdana, Segoe, sans-serif;
+    padding: 10px;
+    text-align: center;
+}
