@@ -2,9 +2,17 @@
 
 import numpy as np
 import pandas as pd
-from dash import Dash, html, dcc, callback, Output, Input, State
+from dash import Dash, html, dcc, callback, Output, Input, State, exceptions
 import module as mod # The plan is to put here the functions which do most of the work
 # import plotly.express as px
+import time
+
+# The following imports are necessary for long callbacks
+from dash.long_callback import DiskcacheLongCallbackManager
+
+import diskcache
+cache = diskcache.Cache("./cache")
+long_callback_manager = DiskcacheLongCallbackManager(cache)
 
 # Style of the GUI
 
@@ -39,7 +47,10 @@ app.layout = html.Div([
     html.Div(children = [
         html.Div(children = [
             html.H3(children = 'Choose the geometry of the set-up'),
-            dcc.Markdown(r'Size of the source ($\mathrm{cm}$)', mathjax = True),
+            html.Br(),
+            html.Label(
+                dcc.Markdown(r'Size of the source ($\mathrm{cm}$)', mathjax = True)
+            ),
             # For now I consider only one transversal and one longitudinal dimension
             dcc.Slider(
                 0.1,
@@ -49,22 +60,28 @@ app.layout = html.Div([
                 marks = {str(x): str(x) for x in np.arange(5, 10, 0.5)},
                 id='hor-size'
             ),
-            dcc.Markdown(r'Distance from the source to the first image ($\mathrm{cm}$)', mathjax = True),
+            html.Br(),
+            html.Label(
+                dcc.Markdown(r'Distance from the source to the first image ($\mathrm{cm}$)', mathjax = True)
+            ),
             dcc.Slider(
-            10,
-            50,
-            step = 5,
-            value = 15,
-            marks = {str(x): str(x) for x in np.arange(10, 50, 5)},
-            id='dist'
+                10,
+                50,
+                step = 5,
+                value = 15,
+                marks = {str(x): str(x) for x in np.arange(10, 50, 5)},
+                id='dist'
             ),
         ],
-        className = 'fixed'
+        className = 'side'
         ),
 
         html.Div(children = [
             html.H3(children = 'Select the number of fields to produce, the number of "scatterers" and the correlation length of the rough glass surface'),
-            dcc.Markdown('Number of speckle fields to produce'),
+            html.Br(),
+            html.Label(
+                dcc.Markdown('Number of speckle fields to produce')
+            ),
             dcc.Slider(
                 10,
                 1000,
@@ -73,7 +90,10 @@ app.layout = html.Div([
                 marks = {str(x): str(x) for x in np.arange(10, 1000, 100)},
                 id='field-number'
             ),
-            dcc.Markdown('Number of scatters per field'),
+            html.Br(),
+            html.Label(
+                dcc.Markdown('Number of scatters per field')
+            ),
             dcc.Slider(
                 100,
                 2000,
@@ -82,7 +102,10 @@ app.layout = html.Div([
                 marks = {str(x): str(x) for x in np.arange(100, 2000, 200)},
                 id='scatterer-number'
             ),
-            dcc.Markdown(r'Correlation length of the rough glass surface ($\mu\mathrm{m}$)', mathjax = True),
+            html.Br(),
+            html.Label(
+                dcc.Markdown(r'Correlation length of the rough glass surface ($\mu\mathrm{m}$)', mathjax = True)
+            ),
             dcc.Slider(
                 0,
                 30,
@@ -92,31 +115,48 @@ app.layout = html.Div([
                 id='correlation-length'
             ),
         ],
-        className = 'flex-item'
+        className = 'side'
         ),
     ],
     className = 'container'),
     
     html.Div(children = [
         html.H3(children = 'START SIMULATION'),
-        html.Button(id='part-one-button', n_clicks = 0, children='Start'), 
+        html.Div([
+            html.Button(id='part-one-button', children='Start'), 
+            html.Button(id='cancel-one', children = 'Cancel'),
+        ],
+        className = 'start'
+        ),
+        html.Div([
+            html.P(id='counter', children = 'Simulation number 1'),
+            html.Progress(id='progress-bar-one')
+        ],
+        className = 'start'
+        ),
     ],
-    className = 'start'),
+    className = 'left'
+    ),
 
     html.H2(children = 'Second part: propagation, spatial filtering and interference'), # Second part of the simulation
 
     html.Div(children = [
         html.Div(children = [
             html.H3(children = 'Select spatial filtering parameters'),
-            dcc.Markdown('Type of filtering'),
+            html.Br(),
+            html.Label(
+                dcc.Markdown('Type of filtering')
+            ),
             dcc.RadioItems(
                 ['Rectangular', 'Gaussian'],
                 'Rectangular',
                 id='filtering-type',
                 inline=True
             ),
-
-            dcc.Markdown(r'Filtering ($\mathrm{cm}^{-1}$)', mathjax = True),
+            html.Br(),
+            html.Label(
+                dcc.Markdown(r'Filtering ($\mathrm{cm}^{-1}$)', mathjax = True)
+            ),
             # I'm going to have a "screen dimension" of about x_M = 10 cm, with a resolution of dx = 0.05 cm, so the bounds in k-space are
             # k_M = pi/dx = 62.8 cm^(-1) with step dk = pi/x_M = 0.314
             # Note that here k = 2pi/lambda.
@@ -129,12 +169,15 @@ app.layout = html.Div([
                 id='filter-width'
             ),
         ],
-        className = 'fixed'
+        className = 'side'
         ),
 
         html.Div(children = [
             html.H3('Choose set-up parameters'),
-            dcc.Markdown(r'Distance from slits to screen ($\mathrm{cm}$)', mathjax = True),
+            html.Br(),
+            html.Label(
+                dcc.Markdown(r'Distance from slits to screen ($\mathrm{cm}$)', mathjax = True)
+            ),
             dcc.Slider( 
                 10,
                 50,
@@ -144,7 +187,7 @@ app.layout = html.Div([
                 id='dist-2'
             ),
         ],
-        className = 'flex-item'
+        className = 'side'
         ),
     ],
     className = 'container'
@@ -152,9 +195,21 @@ app.layout = html.Div([
 
     html.Div(children = [
         html.H3(children = 'START SIMULATION'),
-        html.Button(id='part-two-button', n_clicks = 0, children='Start'), 
+        html.Div([
+            html.Button(id='part-two-button', children='Start'), 
+            html.Button(id='cancel-two', children = 'Cancel'),
+        ],
+        className = 'start'
+        ),
+        html.Div([
+            html.P(id='counter-two', children = '\tSimulation number 1'),
+            html.Progress(id='progress-bar-two')
+        ],
+        className = 'start'
+        ),
     ],
-    className = 'start'),
+    className = 'left'
+    ),
     
     html.H2(children = 'Data Analysis') # Third part: data analysis
 
@@ -164,9 +219,44 @@ className = 'layout')
 
 # Here I should add the necessary callbacks
 
-# @callback(
-#     Output('')
-# )
+@app.long_callback(
+    output = [
+        Output('counter', 'children')
+    ],
+    inputs = [
+        Input('part-one-button', 'n_clicks'),
+        State('hor-size', 'value'),
+        State('dist', 'value'),
+        State('field-number', 'value'),
+        State('scatterer-number', 'value'),
+        State('correlation-length', 'value')
+    ],
+    running=[
+        (Output('part-one-button', 'disabled'), True, False),
+        (Output('cancel-one', 'disabled'), False, True),
+        (
+            Output('counter', 'style'),
+            {'visibility': 'hidden'},
+            {'visibility': 'visible'},
+        ),
+        (
+            Output('progress-bar-one', 'style'),
+            {'visibility': 'visible'},
+            {'visibility': 'hidden'},
+        ),
+    ],
+    cancel=[Input('cancel-one', 'n_clicks')],
+    progress=[Output('progress-bar-one', 'value'), Output('progress-bar-one', 'max')],
+    manager=long_callback_manager
+)
+def generate_fields(set_progress, n_clicks, source_size, dist, field_num, scatt_num, corr):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
+    total = 10
+    for i in range(total):
+        time.sleep(0.5)
+        set_progress((str(i + 1), str(total)))
+    return ['Simulation number {}'.format(n_clicks + 1)]
 
 if __name__ == '__main__':
     app.run(debug=True)

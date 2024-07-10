@@ -1,19 +1,21 @@
 div {
     color: #000000;
-    font-family: Tahoma, Verdana, Segoe, sans-serif;
+    font-family: Tahoma, Verdana, sans-serif;
     padding: 10px;
 }
 .container {
     background-color: #f7ff5c;
     display: flex;
+    width: 1420px;
 }
-.fixed {
+.side {
     background-color: #fbffb6;
-    width: 50vw;
+    width: 700px;
+    flex: 1;
 }
-.flex-item {
-    background-color: #fbffb6;
-    flex-grow: 1;
+.left {
+    background-color: #ffffff;
+    width: 700px;
 }
 .layout {
     background-color: #ffffff;
@@ -23,11 +25,12 @@ div {
     width: 100vw;
 }
 .start {
-    text-align: center
+    text-align: center;
+    display: flex;
 }
 H1, H2, H3 {
     color: #000000;
-    font-family: Tahoma, Verdana, Segoe, sans-serif;
+    font-family: Tahoma, Verdana, sans-serif;
     padding: 10px;
     text-align: center;
 }
