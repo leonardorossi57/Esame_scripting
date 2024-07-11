@@ -46,7 +46,7 @@ app.layout = html.Div([
 
     html.Div(children = [
         html.Div(children = [
-            html.H3(children = 'Choose the geometry of the set-up'),
+            html.H3(children = 'Choose the geometry of the set-up and the wavelength'),
             html.Br(),
             html.Label(
                 dcc.Markdown(r'Size of the source ($\mathrm{cm}$)', mathjax = True)
@@ -57,7 +57,7 @@ app.layout = html.Div([
                 1,
                 step = 0.05,
                 value = 0.5,
-                marks = {str(x): str(x) for x in np.arange(5, 10, 0.5)},
+                marks = {str(x): str(x) for x in np.arange(5, 10, 1)},
                 id='hor-size'
             ),
             html.Br(),
@@ -71,6 +71,19 @@ app.layout = html.Div([
                 value = 15,
                 marks = {str(x): str(x) for x in np.arange(10, 50, 5)},
                 id='dist'
+            ),
+            html.Br(),
+            html.Label(
+                dcc.Markdown(r'Wavelength ($\mathrm{nm}$)', mathjax = True)
+            ),
+            # For now I consider only one transversal and one longitudinal dimension
+            dcc.Slider(
+                400,
+                600,
+                step = 5,
+                value = 500,
+                marks = {str(x): str(x) for x in np.arange(400, 600, 100)},
+                id='wave-len'
             ),
         ],
         className = 'side'
@@ -87,7 +100,7 @@ app.layout = html.Div([
                 1000,
                 step = 1,
                 value = 100,
-                marks = {str(x): str(x) for x in np.arange(10, 1000, 100)},
+                marks = {str(x): str(x) for x in np.arange(10, 1000, 200)},
                 id='field-number'
             ),
             html.Br(),
@@ -99,7 +112,7 @@ app.layout = html.Div([
                 2000,
                 step = 1,
                 value = 1000,
-                marks = {str(x): str(x) for x in np.arange(100, 2000, 200)},
+                marks = {str(x): str(x) for x in np.arange(100, 2000, 400)},
                 id='scatterer-number'
             ),
             html.Br(),
@@ -165,7 +178,7 @@ app.layout = html.Div([
                 62.8,
                 step = 0.314,
                 value = 10,
-                marks = {str(x): str(x * 0.314) for x in np.arange(1, 200, 20)},
+                marks = {str(x): str(x) for x in np.arange(1, 61, 20)},
                 id='filter-width'
             ),
         ],
@@ -183,7 +196,7 @@ app.layout = html.Div([
                 50,
                 step = 5,
                 value = 20,
-                marks = {str(x): str(x) for x in np.arange(1, 500, 50)},
+                marks = {str(x): str(x) for x in np.arange(1, 500, 100)},
                 id='dist-2'
             ),
         ],
@@ -229,7 +242,8 @@ className = 'layout')
         State('dist', 'value'),
         State('field-number', 'value'),
         State('scatterer-number', 'value'),
-        State('correlation-length', 'value')
+        State('correlation-length', 'value'),
+        State('wave-len', 'value')
     ],
     running=[
         (Output('part-one-button', 'disabled'), True, False),
@@ -249,13 +263,14 @@ className = 'layout')
     progress=[Output('progress-bar-one', 'value'), Output('progress-bar-one', 'max')],
     manager=long_callback_manager
 )
-def generate_fields(set_progress, n_clicks, source_size, dist, field_num, scatt_num, corr):
+def generate_fields(set_progress, n_clicks, source_size, dist, field_num, scatt_num, corr, wavelen):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
-    total = 10
-    for i in range(total):
-        time.sleep(0.5)
-        set_progress((str(i + 1), str(total)))
+    for i in range(field_num):
+        field, screen = mod.generate_speckle_field(corr, source_size, dist, scatt_num, wavelen)
+        field_data = pd.DataFrame(np.stack((screen, field.real, field.imag), axis = -1), columns = ['screen', 'spec_re', 'spec_im'])
+        field_data.to_csv('Speckles/speckle_num_{}.csv'.format(i))
+        set_progress((str(i + 1), str(field_num)))
     return ['Simulation number {}'.format(n_clicks + 1)]
 
 if __name__ == '__main__':
