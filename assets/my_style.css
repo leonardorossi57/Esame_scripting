@@ -28,6 +28,12 @@ div {
     text-align: center;
     display: flex;
 }
+.graph {
+    width: 1420px;
+    background-color: #ffffff;
+    height: 820px;
+    padding: 10px 10px 10px 10px;
+}
 H1, H2, H3 {
     color: #000000;
     font-family: Tahoma, Verdana, sans-serif;

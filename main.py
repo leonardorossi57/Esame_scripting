@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 from dash import Dash, html, dcc, callback, Output, Input, State, exceptions
 import module as mod # The plan is to put here the functions which do most of the work
-# import plotly.express as px
-import time
+import plotly.express as px
+import os
 
 # The following imports are necessary for long callbacks
 from dash.long_callback import DiskcacheLongCallbackManager
@@ -57,7 +57,7 @@ app.layout = html.Div([
                 1,
                 step = 0.05,
                 value = 0.5,
-                marks = {str(x): str(x) for x in np.arange(5, 10, 1)},
+                marks = {str(x): str(x) for x in np.arange(5, 11, 1)},
                 id='hor-size'
             ),
             html.Br(),
@@ -69,7 +69,7 @@ app.layout = html.Div([
                 50,
                 step = 5,
                 value = 15,
-                marks = {str(x): str(x) for x in np.arange(10, 50, 5)},
+                marks = {str(x): str(x) for x in np.arange(10, 51, 5)},
                 id='dist'
             ),
             html.Br(),
@@ -82,7 +82,7 @@ app.layout = html.Div([
                 600,
                 step = 5,
                 value = 500,
-                marks = {str(x): str(x) for x in np.arange(400, 600, 100)},
+                marks = {str(x): str(x) for x in np.arange(400, 601, 100)},
                 id='wave-len'
             ),
         ],
@@ -100,7 +100,7 @@ app.layout = html.Div([
                 1000,
                 step = 1,
                 value = 100,
-                marks = {str(x): str(x) for x in np.arange(10, 1000, 200)},
+                marks = {str(x): str(x) for x in np.arange(10, 1001, 200)},
                 id='field-number'
             ),
             html.Br(),
@@ -112,7 +112,7 @@ app.layout = html.Div([
                 2000,
                 step = 1,
                 value = 1000,
-                marks = {str(x): str(x) for x in np.arange(100, 2000, 400)},
+                marks = {str(x): str(x) for x in np.arange(100, 2001, 400)},
                 id='scatterer-number'
             ),
             html.Br(),
@@ -124,7 +124,7 @@ app.layout = html.Div([
                 30,
                 step = 1,
                 value = 0,
-                marks = {str(x): str(x) for x in np.arange(0, 30, 3)},
+                marks = {str(x): str(x) for x in np.arange(0, 31, 3)},
                 id='correlation-length'
             ),
         ],
@@ -196,8 +196,32 @@ app.layout = html.Div([
                 50,
                 step = 5,
                 value = 20,
-                marks = {str(x): str(x) for x in np.arange(1, 500, 100)},
+                marks = {str(x): str(x) for x in np.arange(1, 51, 10)},
                 id='dist-2'
+            ),
+            html.Br(),
+            html.Label(
+                dcc.Markdown(r'Distance between slits ($\mathrm{mm}$)', mathjax = True)
+            ),
+            dcc.Slider( 
+                1,
+                10,
+                step = 0.5,
+                value = 4,
+                marks = {str(x): str(x) for x in np.arange(1, 11, 5)},
+                id='slits-dist'
+            ),
+            html.Br(),
+            html.Label(
+                dcc.Markdown(r'Slit width ($\mathrm{mm}$)', mathjax = True)
+            ),
+            dcc.Slider( 
+                0.1,
+                1,
+                step = 0.05,
+                value = 0.2,
+                marks = {str(x): str(x) for x in np.arange(0.1, 1.01, 0.5)},
+                id='slit-width'
             ),
         ],
         className = 'side'
@@ -215,13 +239,19 @@ app.layout = html.Div([
         className = 'start'
         ),
         html.Div([
-            html.P(id='counter-two', children = '\tSimulation number 1'),
+            html.P(id='counter-two', children = 'Simulation number 1'),
             html.Progress(id='progress-bar-two')
         ],
         className = 'start'
         ),
     ],
     className = 'left'
+    ),
+
+    html.Div(children = [
+        dcc.Graph(id = 'pattern', style={'width': '1400px', 'height': '800px', 'top': '50%', 'left': '50%', 'margin-left': '-10px', 'margin-top': '-10px'}),
+    ],
+    className = 'graph'
     ),
     
     html.H2(children = 'Data Analysis') # Third part: data analysis
@@ -272,6 +302,65 @@ def generate_fields(set_progress, n_clicks, source_size, dist, field_num, scatt_
         field_data.to_csv('Speckles/speckle_num_{}.csv'.format(i))
         set_progress((str(i + 1), str(field_num)))
     return ['Simulation number {}'.format(n_clicks + 1)]
+
+@app.long_callback(
+    output = [
+        Output('counter-two', 'children'),
+        Output('pattern', 'figure')
+    ],
+    inputs = [
+        Input('part-two-button', 'n_clicks'),
+        State('filtering-type', 'value'),
+        State('filter-width', 'value'),
+        State('dist-2', 'value'),
+        State('slits-dist', 'value'),
+        State('slit-width', 'value'),
+        State('wave-len', 'value')
+    ],
+    running=[
+        (Output('part-two-button', 'disabled'), True, False),
+        (Output('cancel-two', 'disabled'), False, True),
+        (
+            Output('counter-two', 'style'),
+            {'visibility': 'hidden'},
+            {'visibility': 'visible'},
+        ),
+        (
+            Output('progress-bar-two', 'style'),
+            {'visibility': 'visible'},
+            {'visibility': 'hidden'},
+        ),
+    ],
+    cancel=[Input('cancel-two', 'n_clicks')],
+    progress=[Output('progress-bar-two', 'value'), Output('progress-bar-two', 'max')],
+    manager=long_callback_manager
+)
+def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width, dist_2, slits_dist, slit_width, wavelen):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
+    
+    screen_size = 10 # [cm] (section of the beam under analysis)
+    dx = 0.05 # [cm] (resolution)
+    dim = int(screen_size/dx) + 1 # Dimension of the arrays
+    pattern = np.zeros(dim, dtype = complex) # Array containing the interference pattern
+    
+    vect = os.listdir('Speckles')
+    
+    k = 1
+    for i in vect:
+        field_data = pd.read_csv('Speckles/' + i)
+        field = field_data['spec_re'].to_numpy() + field_data['spec_im'].to_numpy() * 1j
+        screen = field_data['screen'].to_numpy()
+        filt_field = mod.filter(filter_type, field, filter_width)
+
+        pattern += mod.create_pattern(filt_field, dist_2, slits_dist, slit_width, screen, dim, wavelen)
+        set_progress((str(k), str(len(vect))))
+        k = k + 1
+
+    data = pd.DataFrame(np.stack((screen, np.abs(pattern) ** 2), axis = -1), columns = ['screen', 'pattern'])
+    fig = px.line(data, x = 'screen', y = 'pattern', title = 'Pattern di interferenza mediato')
+
+    return ['Simulation number {}'.format(n_clicks + 1)], fig
 
 if __name__ == '__main__':
     app.run(debug=True)
