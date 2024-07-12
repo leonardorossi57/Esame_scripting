@@ -192,11 +192,11 @@ app.layout = html.Div([
                 dcc.Markdown(r'Distance from slits to screen ($\mathrm{cm}$)', mathjax = True)
             ),
             dcc.Slider( 
-                1000,
                 5000,
+                10000,
                 step = 50,
-                value = 2000,
-                marks = {str(x): str(x) for x in np.arange(1000, 5000, 500)},
+                value = 7000,
+                marks = {str(x): str(x) for x in np.arange(5000, 10000, 500)},
                 id='dist-2'
             ),
             html.Br(),
@@ -219,7 +219,7 @@ app.layout = html.Div([
                 1,
                 4,
                 step = 0.2,
-                value = 2,
+                value = 1,
                 marks = {str(x): str(x) for x in np.arange(1, 4, 1)},
                 id='slit-width'
             ),
