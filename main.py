@@ -57,7 +57,7 @@ app.layout = html.Div([
                 1,
                 step = 0.05,
                 value = 0.5,
-                marks = {str(x): str(x) for x in np.arange(5, 11, 1)},
+                marks = {str(x): str(x) for x in np.arange(5, 10, 1)},
                 id='hor-size'
             ),
             html.Br(),
@@ -69,7 +69,7 @@ app.layout = html.Div([
                 50,
                 step = 5,
                 value = 15,
-                marks = {str(x): str(x) for x in np.arange(10, 51, 5)},
+                marks = {str(x): str(x) for x in np.arange(10, 50, 5)},
                 id='dist'
             ),
             html.Br(),
@@ -82,7 +82,7 @@ app.layout = html.Div([
                 600,
                 step = 5,
                 value = 500,
-                marks = {str(x): str(x) for x in np.arange(400, 601, 100)},
+                marks = {str(x): str(x) for x in np.arange(400, 600, 100)},
                 id='wave-len'
             ),
         ],
@@ -100,7 +100,7 @@ app.layout = html.Div([
                 1000,
                 step = 1,
                 value = 100,
-                marks = {str(x): str(x) for x in np.arange(10, 1001, 200)},
+                marks = {str(x): str(x) for x in np.arange(10, 1000, 200)},
                 id='field-number'
             ),
             html.Br(),
@@ -112,7 +112,7 @@ app.layout = html.Div([
                 2000,
                 step = 1,
                 value = 1000,
-                marks = {str(x): str(x) for x in np.arange(100, 2001, 400)},
+                marks = {str(x): str(x) for x in np.arange(100, 2000, 400)},
                 id='scatterer-number'
             ),
             html.Br(),
@@ -124,7 +124,7 @@ app.layout = html.Div([
                 30,
                 step = 1,
                 value = 0,
-                marks = {str(x): str(x) for x in np.arange(0, 31, 3)},
+                marks = {str(x): str(x) for x in np.arange(0, 30, 3)},
                 id='correlation-length'
             ),
         ],
@@ -170,7 +170,7 @@ app.layout = html.Div([
             html.Label(
                 dcc.Markdown(r'Filtering ($\mathrm{cm}^{-1}$)', mathjax = True)
             ),
-            # I'm going to have a "screen dimension" of about x_M = 10 cm, with a resolution of dx = 0.05 cm, so the bounds in k-space are
+            # I'm going to have a "screen dimension" of about x_M = 10 cm, with a resolution of dx = 0.02 cm, so the bounds in k-space are
             # k_M = pi/dx = 62.8 cm^(-1) with step dk = pi/x_M = 0.314
             # Note that here k = 2pi/lambda.
             dcc.Slider( 
@@ -178,7 +178,7 @@ app.layout = html.Div([
                 62.8,
                 step = 0.314,
                 value = 10,
-                marks = {str(x): str(x) for x in np.arange(1, 61, 20)},
+                marks = {str(x): str(x) for x in np.arange(10, 60, 10)},
                 id='filter-width'
             ),
         ],
@@ -192,11 +192,11 @@ app.layout = html.Div([
                 dcc.Markdown(r'Distance from slits to screen ($\mathrm{cm}$)', mathjax = True)
             ),
             dcc.Slider( 
-                10,
-                50,
-                step = 5,
-                value = 20,
-                marks = {str(x): str(x) for x in np.arange(1, 51, 10)},
+                1000,
+                5000,
+                step = 50,
+                value = 2000,
+                marks = {str(x): str(x) for x in np.arange(1000, 5000, 500)},
                 id='dist-2'
             ),
             html.Br(),
@@ -204,11 +204,11 @@ app.layout = html.Div([
                 dcc.Markdown(r'Distance between slits ($\mathrm{mm}$)', mathjax = True)
             ),
             dcc.Slider( 
-                1,
-                10,
+                4,
+                20,
                 step = 0.5,
                 value = 4,
-                marks = {str(x): str(x) for x in np.arange(1, 11, 5)},
+                marks = {str(x): str(x) for x in np.arange(1, 10, 1)},
                 id='slits-dist'
             ),
             html.Br(),
@@ -216,11 +216,11 @@ app.layout = html.Div([
                 dcc.Markdown(r'Slit width ($\mathrm{mm}$)', mathjax = True)
             ),
             dcc.Slider( 
-                0.1,
                 1,
-                step = 0.05,
-                value = 0.2,
-                marks = {str(x): str(x) for x in np.arange(0.1, 1.01, 0.5)},
+                4,
+                step = 0.2,
+                value = 2,
+                marks = {str(x): str(x) for x in np.arange(1, 4, 1)},
                 id='slit-width'
             ),
         ],
@@ -296,11 +296,13 @@ className = 'layout')
 def generate_fields(set_progress, n_clicks, source_size, dist, field_num, scatt_num, corr, wavelen):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
+    
     for i in range(field_num):
         field, screen = mod.generate_speckle_field(corr, source_size, dist, scatt_num, wavelen)
         field_data = pd.DataFrame(np.stack((screen, field.real, field.imag), axis = -1), columns = ['screen', 'spec_re', 'spec_im'])
         field_data.to_csv('Speckles/speckle_num_{}.csv'.format(i))
         set_progress((str(i + 1), str(field_num)))
+
     return ['Simulation number {}'.format(n_clicks + 1)]
 
 @app.long_callback(
@@ -339,10 +341,10 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width, dist
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
-    screen_size = 10 # [cm] (section of the beam under analysis)
-    dx = 0.05 # [cm] (resolution)
+    screen_size = 20 # [cm] 
+    dx = 0.02 # [cm] (resolution)
     dim = int(screen_size/dx) + 1 # Dimension of the arrays
-    pattern = np.zeros(dim, dtype = complex) # Array containing the interference pattern
+    pattern = np.zeros(dim) # Array containing the interference pattern
     
     vect = os.listdir('Speckles')
     
@@ -357,7 +359,7 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width, dist
         set_progress((str(k), str(len(vect))))
         k = k + 1
 
-    data = pd.DataFrame(np.stack((screen, np.abs(pattern) ** 2), axis = -1), columns = ['screen', 'pattern'])
+    data = pd.DataFrame(np.stack((screen, pattern), axis = -1), columns = ['screen', 'pattern'])
     fig = px.line(data, x = 'screen', y = 'pattern', title = 'Pattern di interferenza mediato')
 
     return ['Simulation number {}'.format(n_clicks + 1)], fig
