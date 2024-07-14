@@ -14,15 +14,14 @@ import diskcache
 cache = diskcache.Cache("./cache")
 long_callback_manager = DiskcacheLongCallbackManager(cache)
 
-# Style of the GUI
-
+# Create the app
 app = Dash(__name__)
 
-# Layout of the interface
+# Layout of the interface; I define the layout as a function, as this allows the layout to be updated upon refreshing the page.
 def serve_layout():
     return html.Div([
     # Title
-    html.H1(children = 'Simulation an data analysis for an optics experiment about spatial coherence'),
+    html.H1(children = 'Simulation and data analysis for an optics experiment about spatial coherence'),
 
     # Text introduction
     html.Div([
@@ -50,7 +49,8 @@ def serve_layout():
             html.H3(children = 'Choose the geometry of the set-up and the wavelength'),
             html.Br(),
             html.Label(
-                dcc.Markdown(r'Size of the source ($\mathrm{cm}$)', mathjax = True)
+                # Input the size of the "source", the source being essentially the portion of the rough glass surface on which the laser shines
+                dcc.Markdown(r'Size of the source ($\mathrm{cm}$)', mathjax = True) 
             ),
             # For now I consider only one transversal and one longitudinal dimension
             dcc.Slider(
@@ -62,9 +62,11 @@ def serve_layout():
                 id='hor-size'
             ),
             html.Br(),
+            # Here the chosen value for the size of the source is shown on screen
             html.Div(id = 'hor-size-out'),
             html.Br(),
             html.Label(
+                # Input the distance over which the field propagates (forming a speckle field in the process) before the filtering
                 dcc.Markdown(r'Distance from the source to the first image ($\mathrm{cm}$)', mathjax = True)
             ),
             dcc.Slider(
@@ -76,12 +78,13 @@ def serve_layout():
                 id='dist'
             ),
             html.Br(),
+            # Show chosen value on screen
             html.Div(id = 'dist-out'),
             html.Br(),
             html.Label(
+                # Input laser wavelength
                 dcc.Markdown(r'Wavelength ($\mathrm{nm}$)', mathjax = True)
             ),
-            # For now I consider only one transversal and one longitudinal dimension
             dcc.Slider(
                 400,
                 600,
@@ -91,6 +94,7 @@ def serve_layout():
                 id='wave-len'
             ),
             html.Br(),
+            # Show chosen value on screeen
             html.Div(id = 'wave-len-out'),
         ],
         className = 'left'
@@ -100,6 +104,7 @@ def serve_layout():
             html.H3(children = 'Select the number of fields to produce, the number of "scatterers" and the correlation length of the rough glass surface'),
             html.Br(),
             html.Label(
+                # Input the number of speckle fields to produce 
                 dcc.Markdown('Number of speckle fields to produce')
             ),
             dcc.Slider(
@@ -111,9 +116,13 @@ def serve_layout():
                 id='field-number'
             ),
             html.Br(),
+            # Show chosen value on screen
             html.Div(id = 'field-number-out'),
             html.Br(),
             html.Label(
+                # Input the number of "scatterers" which produce the field. Essentialy, this number is the number of points of the source.
+                # I found it not practical to randomize the points for the interference part too, but it is possible to do it at least for the 
+                # first part, and this should minimize spurious effects due to the source form and sharp edges. 
                 dcc.Markdown('Number of scatters per field')
             ),
             dcc.Slider(
@@ -125,9 +134,11 @@ def serve_layout():
                 id='scatterer-number'
             ),
             html.Br(),
+            # Show chosen value on screen
             html.Div(id = 'scatterer-number-out'),
             html.Br(),
             html.Label(
+                # Input the correlation length of the surface. 
                 dcc.Markdown(r'Correlation length of the rough glass surface ($\mu\mathrm{m}$)', mathjax = True)
             ),
             dcc.Slider(
@@ -139,6 +150,7 @@ def serve_layout():
                 id='correlation-length'
             ),
             html.Br(),
+            # Show chosen value on screen
             html.Div(id = 'correlation-length-out'),
         ],
         className = 'right'
@@ -150,13 +162,16 @@ def serve_layout():
         html.Div(children = [
             html.H3(children = 'START SIMULATION'),
             html.Div([
+                # These buttons let the user start or stop the simulation
                 html.Button(id='part-one-button', children='Start'), 
                 html.Button(id='cancel-one', children = 'Cancel'),
             ],
             className = 'start'
             ),
             html.Div([
+                # This is just a counter of the number of times the simulation has been ran
                 html.P(id='counter', children = 'Simulation number 1'),
+                # Progress bar
                 html.Progress(id='progress-bar-one')
             ],
             className = 'start'
@@ -175,6 +190,7 @@ def serve_layout():
             html.H3(children = 'Select spatial filtering parameters'),
             html.Br(),
             html.Label(
+                # Input the type of filtering, which should give different statistics of the filtered field (i.e., sinc or gaussian correlation function)
                 dcc.Markdown('Type of filtering')
             ),
             dcc.RadioItems(
@@ -185,6 +201,7 @@ def serve_layout():
             ),
             html.Br(),
             html.Label(
+                # Input how much the spatial spectrum should be filtered
                 dcc.Markdown(r'Filtering ($\mathrm{cm}^{-1}$)', mathjax = True)
             ),
             # I'm going to have a "screen dimension" of about x_M = 10 cm, with a resolution of dx = 0.02 cm, so the bounds in k-space are
@@ -199,6 +216,7 @@ def serve_layout():
                 id='filter-width'
             ),
             html.Br(),
+            # Show the chosen value on screen
             html.Div(id = 'filter-width-out'),
         ],
         className = 'left'
@@ -208,6 +226,7 @@ def serve_layout():
             html.H3('Choose set-up parameters'),
             html.Br(),
             html.Label(
+                # Input the distance from the interference slits and the screen on which the pattern appears. 
                 dcc.Markdown(r'Distance from slits to screen ($\mathrm{cm}$)', mathjax = True)
             ),
             dcc.Slider( 
@@ -219,9 +238,11 @@ def serve_layout():
                 id='dist-2'
             ),
             html.Br(),
+            # Show chosen value on screen
             html.Div(id = 'dist-2-out'),
             html.Br(),
             html.Label(
+                # Input slits spacing
                 dcc.Markdown(r'Distance between slits ($\mathrm{mm}$)', mathjax = True)
             ),
             dcc.Slider( 
@@ -233,8 +254,10 @@ def serve_layout():
                 id='slits-dist'
             ),
             html.Br(),
+            # Show chosen value on screen
             html.Div(id = 'slits-dist-out'),
             html.Br(),
+            # Input slit width 
             html.Label(
                 dcc.Markdown(r'Slit width ($\mathrm{mm}$)', mathjax = True)
             ),
@@ -247,6 +270,7 @@ def serve_layout():
                 id='slit-width'
             ),
             html.Br(),
+            # Show chosen value on screen
             html.Div(id = 'slit-width-out'),
         ],
         className = 'right'
@@ -259,13 +283,16 @@ def serve_layout():
         html.Div(children = [
             html.H3(children = 'START SIMULATION'),
             html.Div([
+                # These buttons let the user start or stop the simulation
                 html.Button(id='part-two-button', children='Start'), 
                 html.Button(id='cancel-two', children = 'Cancel'),
             ],
             className = 'start'
             ),
             html.Div([
+                # Just a counter
                 html.P(id='counter-two', children = 'Simulation number 1'),
+                # Progress bar
                 html.Progress(id='progress-bar-two')
             ],
             className = 'start'
@@ -278,6 +305,7 @@ def serve_layout():
     ),
 
     html.Div(children = [
+        # Show the pattern which results form the simulation, averaged over all the speckle fields
         dcc.Graph(id = 'pattern', style={'width': '1400px', 'height': '800px', 'top': '50%', 'left': '50%', 'margin-left': '-10px', 'margin-top': '-10px'}),
     ],
     className = 'graph'
@@ -301,6 +329,8 @@ def serve_layout():
         html.Div(children = [
             html.H3(children = 'PLOT'),
             html.Label(
+                # All the patterns generated are stored in a folder. The dropdown menu below shows the content of that folder, 
+                # letting the user choose a pattern to analyze individually if necessary
                 dcc.Markdown('Choose pattern to plot')
             ),
             dcc.Dropdown(os.listdir('Patterns'), id = 'select-pattern'),
@@ -321,22 +351,38 @@ def serve_layout():
     className = 'container_2'
     ),
 
+    # I should add ginput-like options to interact with the graph and extract data manually form it
+
     html.Div(children = [
-        dcc.Graph(id = 'pattern-analysis', style={'width': '1400px', 'height': '800px', 'top': '50%', 'left': '50%', 'margin-left': '-10px', 'margin-top': '-10px'}),
+        dcc.Graph(id = 'pattern-analysis', style={'width': '1400px', 'height': '800px', 'top': '50%', 'left': '50%', 'margin-left': '-10px', 'margin-top': '-10px'}, mathjax = True),
     ],
     className = 'graph'
     ),
+
+    html.Div([
+        html.Div([
+        dcc.Markdown("""
+            The analysis consists of the calculation of the visibility of the interference patterns, which corresponds to the absolute value of the *field* 
+            correlation function of the speckle field (absolute value of the *complex degree of coherence*). In addition, the center of the pattern could be a 
+            local maximum, in which case the phase of the correlation function is +1, or a local minimum, in which case the phase is -1.
+        """)
+        ],
+        className = 'inner')
+    ],
+    className = 'container'),
 
     html.Div(children = [
         html.Div(children = [
             html.H3(children = 'START ANALYSIS'),
             html.Div([
+                # This buttons let the user start or stop the analysis (I did not yet add the callback so for the time being the buttons actually do nothing)
                 html.Button(id='part-three-button', children='Start'), 
                 html.Button(id='cancel-three', children = 'Cancel'),
             ],
             className = 'start'
             ),
             html.Div([
+                # Counter and progress bar
                 html.P(id='counter-three', children = 'Analysis number 1'),
                 html.Progress(id='progress-bar-three')
             ],
@@ -354,7 +400,7 @@ className = 'layout'
 
 app.layout = serve_layout
 
-# Here I should add the necessary callbacks
+# Callbacks
 
 @callback( # This serves to return the values selected in the sliders
     Output('hor-size-out', 'children'),
@@ -381,56 +427,59 @@ app.layout = serve_layout
 def update_values(a, b, c, d, e, f, g, h, i, l): 
     return a, b, c, d, e, f, g, h, i, l
 
-@app.long_callback(
+@app.long_callback( 
+    # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
+    # Also, long callback allows to manage the layout during the function call
     output = [
-        Output('counter', 'children')
+        Output('counter', 'children') # Only output is the counter
     ],
     inputs = [
-        Input('part-one-button', 'n_clicks'),
-        State('hor-size', 'value'),
+        Input('part-one-button', 'n_clicks'), # The only input is the click of the 'start' button
+        State('hor-size', 'value'), # The other parameters are passed as states, so changing them does not trigger the start of the simulation
         State('dist', 'value'),
         State('field-number', 'value'),
         State('scatterer-number', 'value'),
         State('correlation-length', 'value'),
         State('wave-len', 'value')
     ],
-    running=[
-        (Output('part-one-button', 'disabled'), True, False),
-        (Output('cancel-one', 'disabled'), False, True),
+    running=[ # When the simulation is running,
+        (Output('part-one-button', 'disabled'), True, False), # The start button is disabled
+        (Output('cancel-one', 'disabled'), False, True), # And it is possible to cancel the operation
         (
-            Output('counter', 'style'),
+            Output('counter', 'style'), # Show or hid the counter (visible when not running, hidden when running)
             {'visibility': 'hidden'},
             {'visibility': 'visible'},
         ),
         (
-            Output('progress-bar-one', 'style'),
+            Output('progress-bar-one', 'style'), # Show or hid the progress bar (hidden when not running, visible when running)
             {'visibility': 'visible'},
             {'visibility': 'hidden'},
         ),
     ],
-    cancel=[Input('cancel-one', 'n_clicks')],
-    progress=[Output('progress-bar-one', 'value'), Output('progress-bar-one', 'max')],
-    manager=long_callback_manager
+    cancel = [Input('cancel-one', 'n_clicks')], # Link to cancel button id
+    progress = [Output('progress-bar-one', 'value'), Output('progress-bar-one', 'max')], # Link to progress bar id
+    manager = long_callback_manager
 )
 def generate_fields(set_progress, n_clicks, source_size, dist, field_num, scatt_num, corr, wavelen):
     if n_clicks is None:
-        raise exceptions.PreventUpdate()
+        raise exceptions.PreventUpdate() # This is necessary in order for the simulation not to start automatically upon launching the app
     
     for i in range(field_num):
-        field, screen = mod.generate_speckle_field(corr, source_size, dist, scatt_num, wavelen)
-        field_data = pd.DataFrame(np.stack((screen, field.real, field.imag), axis = -1), columns = ['screen', 'spec_re', 'spec_im'])
-        field_data.to_csv('Speckles/speckle_num_{}.csv'.format(i))
-        set_progress((str(i + 1), str(field_num)))
+        field, screen = mod.generate_speckle_field(corr, source_size, dist, scatt_num, wavelen) # Generate a field
+        field_data = pd.DataFrame(np.stack((screen, field.real, field.imag), axis = -1), columns = ['screen', 'spec_re', 'spec_im']) # Create a data frame
+        field_data.to_csv('Speckles/speckle_num_{}.csv'.format(i)) # Store in csv
+        set_progress((str(i + 1), str(field_num))) # Update progress bar
 
-    return ['Simulation number {}'.format(n_clicks + 1)]
+    return ['Simulation number {}'.format(n_clicks + 1)] # Return counter
 
 @app.long_callback(
+    # This is the callback for the second simulation. 
     output = [
-        Output('counter-two', 'children'),
-        Output('pattern', 'figure')
+        Output('counter-two', 'children'), # Counter
+        Output('pattern', 'figure') # Graph
     ],
     inputs = [
-        Input('part-two-button', 'n_clicks'),
+        Input('part-two-button', 'n_clicks'), # As before, the only input is the click on the button and the other parameters are states.
         State('filtering-type', 'value'),
         State('filter-width', 'value'),
         State('dist-2', 'value'),
@@ -438,7 +487,7 @@ def generate_fields(set_progress, n_clicks, source_size, dist, field_num, scatt_
         State('slit-width', 'value'),
         State('wave-len', 'value')
     ],
-    running=[
+    running=[ # This is identical to above
         (Output('part-two-button', 'disabled'), True, False),
         (Output('cancel-two', 'disabled'), False, True),
         (
@@ -469,36 +518,39 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width, dist
     
     k = 1
     for i in vect:
-        field_data = pd.read_csv('Speckles/' + i)
-        field = field_data['spec_re'].to_numpy() + field_data['spec_im'].to_numpy() * 1j
-        screen = field_data['screen'].to_numpy()
-        filt_field = mod.filter(filter_type, field, filter_width)
+        field_data = pd.read_csv('Speckles/' + i) # Read the csv with the speckle field
+        field = field_data['spec_re'].to_numpy() + field_data['spec_im'].to_numpy() * 1j # Convert to ndarray
+        screen = field_data['screen'].to_numpy() 
+        filt_field = mod.filter(filter_type, field, filter_width) # Spatially filter the field
 
-        pattern += mod.create_pattern(filt_field, dist_2, slits_dist, slit_width, screen, dim, wavelen)
-        set_progress((str(k), str(len(vect))))
+        # Add the pattern generated by the speckle field to the average
+        pattern += mod.create_pattern(filt_field, dist_2, slits_dist, slit_width, screen, dim, wavelen) 
+        set_progress((str(k), str(len(vect)))) # Update progress bar
         k = k + 1
 
 
-    pattern_data = pd.DataFrame(np.stack((screen, pattern), axis = -1), columns = ['screen', 'pattern'])
-    fig = px.line(pattern_data, x = 'screen', y = 'pattern', title = 'Pattern di interferenza mediato')
-    pattern_data.to_csv('Patterns/Pattern_filt_{}.csv'.format(filter_width))
+    pattern_data = pd.DataFrame(np.stack((screen, pattern), axis = -1), columns = ['screen', 'pattern']) # Convert to data frame
+    fig = px.line(pattern_data, x = 'screen', y = 'pattern', title = 'Pattern di interferenza mediato') # Create the figure of the graph
+    pattern_data.to_csv('Patterns/Pattern_filt_{}.csv'.format(filter_width)) # Store the pattern to csv
 
-    return ['Simulation number {}'.format(n_clicks + 1)], fig
+    return ['Simulation number {}'.format(n_clicks + 1)], fig # Return the outputs
 
 @callback(
-    Output('pattern-analysis', 'figure'),
+    # This is the callback for the plot of an individual pattern in the data analysis part. A long callback isn't necessary here
+    Output('pattern-analysis', 'figure'), # Output a counter and the graph
     Output('counter-plot', 'children'),
-    Input('plot-button', 'n_clicks'),
+    Input('plot-button', 'n_clicks'), # Inout the button click, other parameters are states
     State('select-pattern', 'value')
 )
 def plot_pattern(n_clicks, patt_name):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
-    pattern_data = pd.read_csv('Patterns/' + patt_name)
-    filter_width = patt_name.split('_')[-1]
-    my_string = 'Pattern di interferenza, con filtraggio {}'.format(filter_width) + r'$\mathrm{cm}^{-1}$'
-    fig = px.line(pattern_data, x = 'screen', y = 'pattern', title = my_string)
+    pattern_data = pd.read_csv('Patterns/' + patt_name) # Read the pattern from csv
+    filter_width = patt_name.split('_')[-1].split('.')[0] # Obtain the filter width from the csv file name
+    my_string = r'Interference pattern, filtering = {} '.format(filter_width) 
+    fig = px.line(pattern_data, x = 'screen', y = 'pattern', title = my_string) # Create the figure
+
     return fig, ['Plot number {}'.format(n_clicks + 1)]
     
 if __name__ == '__main__':
