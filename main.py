@@ -19,7 +19,8 @@ long_callback_manager = DiskcacheLongCallbackManager(cache)
 app = Dash(__name__)
 
 # Layout of the interface
-app.layout = html.Div([
+def serve_layout():
+    return html.Div([
     # Title
     html.H1(children = 'Simulation an data analysis for an optics experiment about spatial coherence'),
 
@@ -57,9 +58,11 @@ app.layout = html.Div([
                 1,
                 step = 0.05,
                 value = 0.5,
-                marks = {str(x): str(x) for x in np.arange(5, 10, 1)},
+                marks = {str(x): str(x) for x in [0.5, 1]},
                 id='hor-size'
             ),
+            html.Br(),
+            html.Div(id = 'hor-size-out'),
             html.Br(),
             html.Label(
                 dcc.Markdown(r'Distance from the source to the first image ($\mathrm{cm}$)', mathjax = True)
@@ -69,9 +72,11 @@ app.layout = html.Div([
                 50,
                 step = 5,
                 value = 15,
-                marks = {str(x): str(x) for x in np.arange(10, 50, 5)},
+                marks = {str(x): str(x) for x in np.arange(10, 60, 10)},
                 id='dist'
             ),
+            html.Br(),
+            html.Div(id = 'dist-out'),
             html.Br(),
             html.Label(
                 dcc.Markdown(r'Wavelength ($\mathrm{nm}$)', mathjax = True)
@@ -82,11 +87,13 @@ app.layout = html.Div([
                 600,
                 step = 5,
                 value = 500,
-                marks = {str(x): str(x) for x in np.arange(400, 600, 100)},
+                marks = {str(x): str(x) for x in np.arange(400, 700, 100)},
                 id='wave-len'
             ),
+            html.Br(),
+            html.Div(id = 'wave-len-out'),
         ],
-        className = 'side'
+        className = 'left'
         ),
 
         html.Div(children = [
@@ -104,6 +111,8 @@ app.layout = html.Div([
                 id='field-number'
             ),
             html.Br(),
+            html.Div(id = 'field-number-out'),
+            html.Br(),
             html.Label(
                 dcc.Markdown('Number of scatters per field')
             ),
@@ -116,6 +125,8 @@ app.layout = html.Div([
                 id='scatterer-number'
             ),
             html.Br(),
+            html.Div(id = 'scatterer-number-out'),
+            html.Br(),
             html.Label(
                 dcc.Markdown(r'Correlation length of the rough glass surface ($\mu\mathrm{m}$)', mathjax = True)
             ),
@@ -124,31 +135,37 @@ app.layout = html.Div([
                 30,
                 step = 1,
                 value = 0,
-                marks = {str(x): str(x) for x in np.arange(0, 30, 3)},
+                marks = {str(x): str(x) for x in np.arange(0, 30, 10)},
                 id='correlation-length'
             ),
+            html.Br(),
+            html.Div(id = 'correlation-length-out'),
         ],
-        className = 'side'
+        className = 'right'
         ),
     ],
     className = 'container'),
     
     html.Div(children = [
-        html.H3(children = 'START SIMULATION'),
-        html.Div([
-            html.Button(id='part-one-button', children='Start'), 
-            html.Button(id='cancel-one', children = 'Cancel'),
+        html.Div(children = [
+            html.H3(children = 'START SIMULATION'),
+            html.Div([
+                html.Button(id='part-one-button', children='Start'), 
+                html.Button(id='cancel-one', children = 'Cancel'),
+            ],
+            className = 'start'
+            ),
+            html.Div([
+                html.P(id='counter', children = 'Simulation number 1'),
+                html.Progress(id='progress-bar-one')
+            ],
+            className = 'start'
+            ),
         ],
-        className = 'start'
-        ),
-        html.Div([
-            html.P(id='counter', children = 'Simulation number 1'),
-            html.Progress(id='progress-bar-one')
-        ],
-        className = 'start'
+        className = 'box'
         ),
     ],
-    className = 'left'
+    className = 'container_2'
     ),
 
     html.H2(children = 'Second part: propagation, spatial filtering and interference'), # Second part of the simulation
@@ -181,8 +198,10 @@ app.layout = html.Div([
                 marks = {str(x): str(x) for x in np.arange(10, 60, 10)},
                 id='filter-width'
             ),
+            html.Br(),
+            html.Div(id = 'filter-width-out'),
         ],
-        className = 'side'
+        className = 'left'
         ),
 
         html.Div(children = [
@@ -196,9 +215,11 @@ app.layout = html.Div([
                 10000,
                 step = 50,
                 value = 7000,
-                marks = {str(x): str(x) for x in np.arange(5000, 10000, 500)},
+                marks = {str(x): str(x) for x in np.arange(5000, 10000, 1000)},
                 id='dist-2'
             ),
+            html.Br(),
+            html.Div(id = 'dist-2-out'),
             html.Br(),
             html.Label(
                 dcc.Markdown(r'Distance between slits ($\mathrm{mm}$)', mathjax = True)
@@ -208,9 +229,11 @@ app.layout = html.Div([
                 20,
                 step = 0.5,
                 value = 4,
-                marks = {str(x): str(x) for x in np.arange(1, 10, 1)},
+                marks = {str(x): str(x) for x in np.arange(5, 20, 5)},
                 id='slits-dist'
             ),
+            html.Br(),
+            html.Div(id = 'slits-dist-out'),
             html.Br(),
             html.Label(
                 dcc.Markdown(r'Slit width ($\mathrm{mm}$)', mathjax = True)
@@ -223,29 +246,35 @@ app.layout = html.Div([
                 marks = {str(x): str(x) for x in np.arange(1, 4, 1)},
                 id='slit-width'
             ),
+            html.Br(),
+            html.Div(id = 'slit-width-out'),
         ],
-        className = 'side'
+        className = 'right'
         ),
     ],
     className = 'container'
     ),
 
     html.Div(children = [
-        html.H3(children = 'START SIMULATION'),
-        html.Div([
-            html.Button(id='part-two-button', children='Start'), 
-            html.Button(id='cancel-two', children = 'Cancel'),
+        html.Div(children = [
+            html.H3(children = 'START SIMULATION'),
+            html.Div([
+                html.Button(id='part-two-button', children='Start'), 
+                html.Button(id='cancel-two', children = 'Cancel'),
+            ],
+            className = 'start'
+            ),
+            html.Div([
+                html.P(id='counter-two', children = 'Simulation number 1'),
+                html.Progress(id='progress-bar-two')
+            ],
+            className = 'start'
+            ),
         ],
-        className = 'start'
-        ),
-        html.Div([
-            html.P(id='counter-two', children = 'Simulation number 1'),
-            html.Progress(id='progress-bar-two')
-        ],
-        className = 'start'
+        className = 'box'
         ),
     ],
-    className = 'left'
+    className = 'container_2'
     ),
 
     html.Div(children = [
@@ -253,14 +282,104 @@ app.layout = html.Div([
     ],
     className = 'graph'
     ),
-    
-    html.H2(children = 'Data Analysis') # Third part: data analysis
 
-    # I didn't do anything yet here
+    html.H2(children = 'Data Analysis'), # Third part: data analysis
+
+    # Text introduction
+    html.Div([
+        html.Div([
+        dcc.Markdown("""
+            Once generated a bunch of patterns with different filterings with the functions above, refresh the page *only once* before 
+            starting the analysis.
+        """)
+        ],
+        className = 'inner')
+    ],
+    className = 'container'),
+
+    html.Div(children = [
+        html.Div(children = [
+            html.H3(children = 'PLOT'),
+            html.Label(
+                dcc.Markdown('Choose pattern to plot')
+            ),
+            dcc.Dropdown(os.listdir('Patterns'), id = 'select-pattern'),
+            html.Div([
+                html.Button(id='plot-button', children='Plot')
+            ],
+            className = 'start'
+            ),
+            html.Div([
+                html.P(id='counter-plot', children = 'Plot number 1')
+            ],
+            className = 'start'
+            ),
+        ],
+        className = 'box'
+        ),
+    ],
+    className = 'container_2'
+    ),
+
+    html.Div(children = [
+        dcc.Graph(id = 'pattern-analysis', style={'width': '1400px', 'height': '800px', 'top': '50%', 'left': '50%', 'margin-left': '-10px', 'margin-top': '-10px'}),
+    ],
+    className = 'graph'
+    ),
+
+    html.Div(children = [
+        html.Div(children = [
+            html.H3(children = 'START ANALYSIS'),
+            html.Div([
+                html.Button(id='part-three-button', children='Start'), 
+                html.Button(id='cancel-three', children = 'Cancel'),
+            ],
+            className = 'start'
+            ),
+            html.Div([
+                html.P(id='counter-three', children = 'Analysis number 1'),
+                html.Progress(id='progress-bar-three')
+            ],
+            className = 'start'
+            ),
+        ],
+        className = 'box'
+        ),
+        ],
+    className = 'container_2'
+    ),
 ],
-className = 'layout')
+className = 'layout'
+)
+
+app.layout = serve_layout
 
 # Here I should add the necessary callbacks
+
+@callback( # This serves to return the values selected in the sliders
+    Output('hor-size-out', 'children'),
+    Output('dist-out', 'children'),
+    Output('wave-len-out', 'children'),
+    Output('field-number-out', 'children'),
+    Output('scatterer-number-out', 'children'),
+    Output('correlation-length-out', 'children'),
+    Output('filter-width-out', 'children'),
+    Output('dist-2-out', 'children'),
+    Output('slits-dist-out', 'children'),
+    Output('slit-width-out', 'children'),
+    Input('hor-size', 'value'),
+    Input('dist', 'value'),
+    Input('wave-len', 'value'),
+    Input('field-number', 'value'),
+    Input('scatterer-number', 'value'),
+    Input('correlation-length', 'value'),
+    Input('filter-width', 'value'),
+    Input('dist-2', 'value'),
+    Input('slits-dist', 'value'),
+    Input('slit-width', 'value'),
+)
+def update_values(a, b, c, d, e, f, g, h, i, l): 
+    return a, b, c, d, e, f, g, h, i, l
 
 @app.long_callback(
     output = [
@@ -359,10 +478,28 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width, dist
         set_progress((str(k), str(len(vect))))
         k = k + 1
 
-    data = pd.DataFrame(np.stack((screen, pattern), axis = -1), columns = ['screen', 'pattern'])
-    fig = px.line(data, x = 'screen', y = 'pattern', title = 'Pattern di interferenza mediato')
+
+    pattern_data = pd.DataFrame(np.stack((screen, pattern), axis = -1), columns = ['screen', 'pattern'])
+    fig = px.line(pattern_data, x = 'screen', y = 'pattern', title = 'Pattern di interferenza mediato')
+    pattern_data.to_csv('Patterns/Pattern_filt_{}.csv'.format(filter_width))
 
     return ['Simulation number {}'.format(n_clicks + 1)], fig
 
+@callback(
+    Output('pattern-analysis', 'figure'),
+    Output('counter-plot', 'children'),
+    Input('plot-button', 'n_clicks'),
+    State('select-pattern', 'value')
+)
+def plot_pattern(n_clicks, patt_name):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
+    
+    pattern_data = pd.read_csv('Patterns/' + patt_name)
+    filter_width = patt_name.split('_')[-1]
+    my_string = 'Pattern di interferenza, con filtraggio {}'.format(filter_width) + r'$\mathrm{cm}^{-1}$'
+    fig = px.line(pattern_data, x = 'screen', y = 'pattern', title = my_string)
+    return fig, ['Plot number {}'.format(n_clicks + 1)]
+    
 if __name__ == '__main__':
     app.run(debug=True)

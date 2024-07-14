@@ -1,21 +1,49 @@
 div {
     color: #000000;
     font-family: Tahoma, Verdana, sans-serif;
-    padding: 10px;
 }
 .container {
     background-color: #f7ff5c;
     display: flex;
-    width: 1420px;
+    width: 100%;
+    max-width: 1420px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
-.side {
-    background-color: #fbffb6;
-    width: 700px;
-    flex: 1;
+.container_2 {
+    background-color: #f7ff5c;
+    display: flex;
+    width: 50%;
+    max-width: 720px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 .left {
-    background-color: #ffffff;
-    width: 700px;
+    background-color: #fbffb6;
+    width: 50%;
+    max-width: 700px;
+    flex: 1;
+    margin-top: 10px;
+    margin-left: 10px;
+    margin-bottom: 10px;
+}
+.right {
+    background-color: #fbffb6;
+    width: 50%;
+    max-width: 700px;
+    flex: 1;
+    margin-top: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+.box {
+    background-color: #fbffb6;
+    width: 100%;
+    max-width: 700px;
+    margin-top: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
 }
 .layout {
     background-color: #ffffff;
@@ -23,16 +51,28 @@ div {
 .inner {
     background-color: #fbffb6;
     width: 100vw;
+    margin-top: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
 }
 .start {
     text-align: center;
     display: flex;
+    margin-top: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
 }
 .graph {
-    width: 1420px;
+    width: 100%;
+    max-width: 1420px;
     background-color: #ffffff;
-    height: 820px;
-    padding: 10px 10px 10px 10px;
+    max-height: 820px;
+    margin-top: 10px;
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
 }
 H1, H2, H3 {
     color: #000000;
