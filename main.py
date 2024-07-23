@@ -35,6 +35,7 @@ def serve_layout():
         
         # First tab
         html.Div(children = [
+            html.H2(children = 'Introduction'),
             html.Div([ 
                 # Text introduction
                 html.Div([
@@ -48,9 +49,9 @@ def serve_layout():
                         be related to the amount of spatial filtering. 
                     """)
                 ],
-                className = 'inner')
+                className = 'inner_blue')
             ],
-            className = 'container'
+            className = 'container_blue'
             )
         ],
         style = {'dispay': 'none'}, # The style is updated by the callback when the tab is selected or deselected
@@ -59,7 +60,7 @@ def serve_layout():
 
         # Second tab
         html.Div(children = [
-            html.H2(children = 'First part: generation of the spackle fields'),
+            html.H2(children = 'First part: generation of the speckle fields'),
             html.Div(children = [ 
                 # Input parameters for the first part of the simulation
                 html.Div(children = [
@@ -197,8 +198,13 @@ def serve_layout():
                 ],
                 className = 'box'
                 ),
+                html.Div(children = [
+                    html.Img(src = 'assets/clean.png', width = '700px')
+                ],
+                className = 'box'
+                ),
             ],
-            className = 'container_2'
+            className = 'container'
             ),
         ],
         style = {'display': 'none'},
@@ -208,7 +214,6 @@ def serve_layout():
         # Third tab
         html.Div(children = [
             html.H2(children = 'Second part: propagation, spatial filtering and interference'), # Second part of the simulation
-
             html.Div(children = [
                 html.Div(children = [
                     html.H3(children = 'Select spatial filtering parameters'),
@@ -243,7 +248,7 @@ def serve_layout():
                     # Show the chosen value on screen
                     html.Div(id = 'filter-width-out'),
                 ],
-                className = 'left'
+                className = 'left_green'
                 ),
 
                 html.Div(children = [
@@ -297,10 +302,10 @@ def serve_layout():
                     # Show chosen value on screen
                     html.Div(id = 'slit-width-out'),
                 ],
-                className = 'right'
+                className = 'right_green'
                 ),
             ],
-            className = 'container'
+            className = 'container_green'
             ),
 
             html.Div(children = [
@@ -322,10 +327,15 @@ def serve_layout():
                     className = 'start'
                     ),
                 ],
-                className = 'box'
+                className = 'box_green'
+                ),
+                html.Div(children = [
+                    html.Img(src = 'assets/clean.png', width = '700px')
+                ],
+                className = 'box_green'
                 ),
             ],
-            className = 'container_2'
+            className = 'container_green'
             ),
 
             html.Div(children = [
@@ -351,9 +361,9 @@ def serve_layout():
                     starting the analysis.
                 """)
                 ],
-                className = 'inner')
+                className = 'inner_pink')
             ],
-            className = 'container'),
+            className = 'container_pink'),
 
             html.Div(children = [
                 html.Div(children = [
@@ -375,10 +385,11 @@ def serve_layout():
                     className = 'start'
                     ),
                 ],
-                className = 'box'
+                className = 'box_pink'
                 ),
+
             ],
-            className = 'container_2'
+            className = 'container_2_pink'
             ),
 
             # I should add ginput-like options to interact with the graph and extract data manually form it
@@ -397,9 +408,9 @@ def serve_layout():
                     local maximum, in which case the phase of the correlation function is +1, or a local minimum, in which case the phase is -1.
                 """)
                 ],
-                className = 'inner')
+                className = 'inner_pink')
             ],
-            className = 'container'),
+            className = 'container_pink'),
 
             html.Div(children = [
                 html.Div(children = [
@@ -419,10 +430,10 @@ def serve_layout():
                     className = 'start'
                     ),
                 ],
-                className = 'box'
+                className = 'box_pink'
                 ),
                 ],
-            className = 'container_2'
+            className = 'container_2_pink'
             ),
         ],
         style = {'display': 'none'},
