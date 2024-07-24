@@ -37,6 +37,10 @@ def serve_layout():
         html.Div(children = [
             html.H2(children = 'Introduction'),
             html.Div([ 
+                html.Div([
+                    html.Img(src = 'assets/part_12.png', width = '700px')
+                ],
+                className = 'box_blue'),
                 # Text introduction
                 html.Div([
                     dcc.Markdown("""
@@ -49,10 +53,10 @@ def serve_layout():
                         be related to the amount of spatial filtering. 
                     """)
                 ],
-                className = 'inner_blue')
+                className = 'box_blue'),
             ],
             className = 'container_blue'
-            )
+            ),
         ],
         style = {'dispay': 'none'}, # The style is updated by the callback when the tab is selected or deselected
         id = 'first-tab'
@@ -61,6 +65,36 @@ def serve_layout():
         # Second tab
         html.Div(children = [
             html.H2(children = 'First part: generation of the speckle fields'),
+    
+            html.Div(children = [
+                html.Div(children = [
+                    html.Img(src = 'assets/part_1.png', width = '700px')
+                ],
+                className = 'box'
+                ),
+                html.Div(children = [
+                    html.H3(children = 'START SIMULATION'),
+                    html.Div([
+                        # These buttons let the user start or stop the simulation
+                        html.Button(id='part-one-button', children='Start'), 
+                        html.Button(id='cancel-one', children = 'Cancel'),
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        # This is just a counter of the number of times the simulation has been ran
+                        html.P(id='counter', children = 'Simulation number 1'),
+                        # Progress bar
+                        html.Progress(id='progress-bar-one')
+                    ],
+                    className = 'start'
+                    ),
+                ],
+                className = 'box'
+                ),
+            ],
+            className = 'container'
+            ),
             html.Div(children = [ 
                 # Input parameters for the first part of the simulation
                 html.Div(children = [
@@ -176,36 +210,6 @@ def serve_layout():
             ],
             className = 'container'
             ),
-    
-            html.Div(children = [
-                html.Div(children = [
-                    html.H3(children = 'START SIMULATION'),
-                    html.Div([
-                        # These buttons let the user start or stop the simulation
-                        html.Button(id='part-one-button', children='Start'), 
-                        html.Button(id='cancel-one', children = 'Cancel'),
-                    ],
-                    className = 'start'
-                    ),
-                    html.Div([
-                        # This is just a counter of the number of times the simulation has been ran
-                        html.P(id='counter', children = 'Simulation number 1'),
-                        # Progress bar
-                        html.Progress(id='progress-bar-one')
-                    ],
-                    className = 'start'
-                    ),
-                ],
-                className = 'box'
-                ),
-                html.Div(children = [
-                    html.Img(src = 'assets/clean.png', width = '700px')
-                ],
-                className = 'box'
-                ),
-            ],
-            className = 'container'
-            ),
         ],
         style = {'display': 'none'},
         id = 'second-tab'
@@ -214,6 +218,35 @@ def serve_layout():
         # Third tab
         html.Div(children = [
             html.H2(children = 'Second part: propagation, spatial filtering and interference'), # Second part of the simulation
+            html.Div(children = [
+                html.Div(children = [
+                    html.Img(src = 'assets/part_2.png', width = '700px')
+                ],
+                className = 'box_green'
+                ),
+                html.Div(children = [
+                    html.H3(children = 'START SIMULATION'),
+                    html.Div([
+                        # These buttons let the user start or stop the simulation
+                        html.Button(id='part-two-button', children='Start'), 
+                        html.Button(id='cancel-two', children = 'Cancel'),
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        # Just a counter
+                        html.P(id='counter-two', children = 'Simulation number 1'),
+                        # Progress bar
+                        html.Progress(id='progress-bar-two')
+                    ],
+                    className = 'start'
+                    ),
+                ],
+                className = 'box_green'
+                ),
+            ],
+            className = 'container_green'
+            ),
             html.Div(children = [
                 html.Div(children = [
                     html.H3(children = 'Select spatial filtering parameters'),
@@ -309,36 +342,6 @@ def serve_layout():
             ),
 
             html.Div(children = [
-                html.Div(children = [
-                    html.H3(children = 'START SIMULATION'),
-                    html.Div([
-                        # These buttons let the user start or stop the simulation
-                        html.Button(id='part-two-button', children='Start'), 
-                        html.Button(id='cancel-two', children = 'Cancel'),
-                    ],
-                    className = 'start'
-                    ),
-                    html.Div([
-                        # Just a counter
-                        html.P(id='counter-two', children = 'Simulation number 1'),
-                        # Progress bar
-                        html.Progress(id='progress-bar-two')
-                    ],
-                    className = 'start'
-                    ),
-                ],
-                className = 'box_green'
-                ),
-                html.Div(children = [
-                    html.Img(src = 'assets/clean.png', width = '700px')
-                ],
-                className = 'box_green'
-                ),
-            ],
-            className = 'container_green'
-            ),
-
-            html.Div(children = [
                 # Show the pattern which results form the simulation, averaged over all the speckle fields
                 dcc.Graph(id = 'pattern', style={'width': '1400px', 'height': '800px', 'top': '50%', 'left': '50%', 'margin-left': '-10px', 'margin-top': '-10px'}),
             ],
@@ -352,18 +355,6 @@ def serve_layout():
         # Fourth tab
         html.Div(children = [
             html.H2(children = 'Data Analysis'), # Third part: data analysis
-
-            # Text introduction
-            html.Div([
-                html.Div([
-                dcc.Markdown("""
-                    Once generated a bunch of patterns with different filterings with the functions above, refresh the page *only once* before 
-                    starting the analysis.
-                """)
-                ],
-                className = 'inner_pink')
-            ],
-            className = 'container_pink'),
 
             html.Div(children = [
                 html.Div(children = [
@@ -387,9 +378,16 @@ def serve_layout():
                 ],
                 className = 'box_pink'
                 ),
-
+                html.Div([
+                # Text introduction
+                dcc.Markdown("""
+                    Once generated a bunch of patterns with different filterings with the functions above, refresh the page *only once* before 
+                    starting the analysis.
+                """)
+                ],
+                className = 'box_pink')
             ],
-            className = 'container_2_pink'
+            className = 'container_pink'
             ),
 
             # I should add ginput-like options to interact with the graph and extract data manually form it
