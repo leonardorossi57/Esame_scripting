@@ -92,12 +92,36 @@ def serve_layout():
                     ],
                     className = 'start'
                     ),
+                    html.H3(children = 'PLOT A SAMPLE FIELD'),
+                    html.Label(
+                        # All the patterns generated are stored in a folder. The dropdown menu below shows the content of that folder, 
+                        # letting the user choose a pattern to analyze individually if necessary
+                        dcc.Markdown('Choose sample field to plot')
+                    ),
+                    dcc.Dropdown(os.listdir('Speckles')[:10], id = 'select-field-plot'),
+                    html.Div([
+                        html.Button(id='plot-field', children='Plot')
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        html.P(id='counter-field-plot', children = 'Plot number 1')
+                    ],
+                    className = 'start'
+                    ),
                 ],
                 className = 'box'
                 ),
             ],
             className = 'container'
             ),
+
+            html.Div(children = [
+                dcc.Graph(id = 'sample-speckle', style={'width': '1400px', 'height': '800px'}, mathjax = True),
+            ],
+            className = 'graph'
+            ),
+
             html.Div(children = [ 
                 # Input parameters for the first part of the simulation
                 html.Div(children = [
@@ -287,7 +311,7 @@ def serve_layout():
 
             html.Div(children = [
                 # Show the pattern which results form the simulation, averaged over all the speckle fields
-                dcc.Graph(id = 'pattern', style={'width': '1400px', 'height': '800px', 'top': '50%', 'left': '50%', 'margin-left': '-10px', 'margin-top': '-10px'}),
+                dcc.Graph(id = 'pattern', style={'width': '1400px', 'height': '800px'}),
             ],
             className = 'graph'
             ),
@@ -319,6 +343,12 @@ def serve_layout():
                     ],
                     className = 'start'
                     ),
+                    html.H3(children = 'PROCESS'),
+                    html.Div([
+                        html.Button(id='process-button', children='Process')
+                    ],
+                    className = 'start'
+                    ),
                 ],
                 className = 'box_pink'
                 ),
@@ -336,13 +366,24 @@ def serve_layout():
             # I should add ginput-like options to interact with the graph and extract data manually form it
 
             html.Div(children = [
-                dcc.Graph(id = 'pattern-analysis', style={'width': '1400px', 'height': '800px', 'top': '50%', 'left': '50%', 'margin-left': '-10px', 'margin-top': '-10px'}, mathjax = True),
+                dcc.Graph(id = 'pattern-analysis', style={'width': '1400px', 'height': '800px'}, mathjax = True),
             ],
             className = 'graph'
             ),
 
             html.Div(children = [
                     dcc.Markdown(id = 'patt-param', mathjax = True)
+            ]),
+
+            html.Div(children = [
+                dcc.Graph(id = 'patt-prof', style={'width': '700px', 'height': '400px'}, mathjax = True),
+                dcc.Graph(id = 'patt-norm', style={'width': '700px', 'height': '400px'}, mathjax = True),
+            ],
+            style = {'width': '1400px', 'height': '400px', 'display': 'flex', 'background-color': '#000000', 'padding-top': '10px', 'padding-right': '10px', 'padding-bottom': '10px', 'padding-left': '10px'}
+            ),
+
+            html.Div(children = [
+                    dcc.Markdown(id = 'visibility', mathjax = True)
             ]),
 
             html.Div([
@@ -559,6 +600,49 @@ def plot_pattern(n_clicks, patt_name):
     fig = px.line(pattern_data, x = 'screen', y = 'pattern', title = 'Interference pattern') # Create the figure
 
     return fig, ['Plot number {}'.format(n_clicks + 1)], ['Filter type: ' + pattern_data['filter_type'][0] + ', filter width: {}'.format(pattern_data['filter_width'][0]) + r'$\, \mathrm{cm}^{-1}$' + ', slit separation: {}'.format(pattern_data['slits_dist'][0]) + r'$\, \mathrm{mm}$']
+
+@callback(
+    # This is the callback for the plot of an individual pattern in the data analysis part. A long callback isn't necessary here
+    Output('sample-speckle', 'figure'), # Output a counter, the graph and the parameters of the pattern
+    Output('counter-field-plot', 'children'),
+    Input('plot-field', 'n_clicks'), # Input the button click, other parameters are states
+    State('select-field-plot', 'value')
+)
+def plot_field(n_clicks, field_name):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
     
+    field_data = pd.read_csv('Speckles/' + field_name) # Read the pattern from csv
+    data_spec = pd.concat([field_data['screen'], (field_data['spec_re'] ** 2 + field_data['spec_im'] ** 2).rename('spec')], axis = 1)
+
+    fig = px.line(data_spec, x = 'screen', y = 'spec', title = 'Speckle field') # Create the figure
+
+    return fig, ['Plot number {}'.format(n_clicks + 1)],
+
+@callback(
+    # Callback for analysis of a single field
+    Output('visibility', 'children'),
+    Output('patt-prof', 'figure'),
+    Output('patt-norm', 'figure'),
+    Input('process-button', 'n_clicks'), # Input the button click, other parameters are states
+    State('select-pattern', 'value')
+)
+def analyze(n_clicks, patt_name):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
+    
+    dist_2 = 1e4 # [cm]
+    wavelen = 500 # [nm]
+    slit_width = 1 # [mm]
+
+    pattern_data = pd.read_csv('Patterns/' + patt_name) # Read the pattern from csv
+
+    patt_data_prof, patt_data_norm, vis = mod.process_pattern(pattern_data, wavelen, dist_2, slit_width)
+    
+    fig_1 = px.line(patt_data_prof.melt(id_vars = 'screen', value_vars = ['pattern', 'profile']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
+    fig_2 = px.line(patt_data_norm, x = 'screen', y = 'pattern', title = 'Normalized interference pattern')
+
+    return  ['Visibility = {}'.format(vis)], fig_1, fig_2
+
 if __name__ == '__main__':
     app.run(debug=True)

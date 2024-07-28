@@ -81,3 +81,49 @@ def create_pattern(field, dist_2, slits_dist, slit_width, screen, dim, wavelen):
 
     # Return the interference pattern.
     return np.abs(pattern).real ** 2
+
+# dist_2 = 1e4 # [cm]
+# wavelen = 500 # [nm]
+# slit_width = 1 # [mm]
+
+def process_pattern(pattern_data, wavelen, dist_2, slit_width):
+    cut = 4 # [cm]
+    wavelen = wavelen / 1e7 # Convert to cm
+    slit_width = slit_width / 10
+
+    screen = pattern_data['screen'].to_numpy()
+    pattern = pattern_data['pattern'].to_numpy()
+
+    pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part
+    screen_cut = screen[np.logical_and(screen >= -cut, screen <= cut)]
+
+    profile = np.sinc(slit_width * screen_cut / (wavelen * dist_2)) ** 2 # Profile due to finite slit width
+
+    max_patt = np.max(pattern_cut)
+    max_screen = screen_cut[pattern_cut == max_patt][0]
+
+    max_profile = np.sinc(slit_width * max_screen / (wavelen * dist_2)) ** 2 # Point of the profile corresponding to pattern maximum
+
+    norm = max_patt / max_profile
+
+    profile = profile * norm # Normalization of the profile
+
+    patt_norm = pattern_cut / profile # Pattern modulo finite slit size effects
+
+    patt_data_prof = pd.DataFrame({
+        'screen': screen_cut,
+        'pattern': pattern_cut,
+        'profile': profile
+    })
+
+    patt_data_norm = pd.DataFrame({
+        'screen': screen_cut,
+        'pattern': patt_norm
+    })
+
+    # Calculation of visibility
+
+    vis = (np.max(patt_norm) - np.min(patt_norm)) / (np.max(patt_norm) + np.min(patt_norm)) 
+    # The normalized pattern should be a sinusoid, so the maximum and the minimum are well defined
+    
+    return patt_data_prof, patt_data_norm, vis
