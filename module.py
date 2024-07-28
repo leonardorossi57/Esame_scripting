@@ -8,7 +8,7 @@ def generate_speckle_field(corr, source_size, dist, scatt_num, wavelen): # Use, 
     wavelen = wavelen / 1e7
 
     screen_size = 20 # [cm] (section of the beam under analysis)
-    dx = 0.02 # [cm] (resolution)
+    dx = 0.01 # [cm] (resolution)
     dim = int(screen_size/dx) + 1 # Dimension of the arrays
     field = np.zeros(dim, dtype = complex) # Array containing the speckle field
     screen = np.linspace(-screen_size/2, screen_size/2, dim)
@@ -37,7 +37,7 @@ def generate_speckle_field(corr, source_size, dist, scatt_num, wavelen): # Use, 
 def filter(filter_type, field, filter_width):
 
     screen_size = 20 # [cm] (section of the beam under analysis)
-    dx = 0.02 # [cm] (resolution)
+    dx = 0.01 # [cm] (resolution)
         
     kspace_size = 2 * np.pi/dx
     dk = 2 * np.pi/screen_size
@@ -98,7 +98,7 @@ def create_pattern(field, dist_2, slits_dist, slit_width, screen, dim, wavelen):
 # slit_width = 1 # [mm]
 
 def process_pattern(pattern_data):
-    cut = 4 # [cm]
+    cut = 2.5 # [cm]
 
     screen = pattern_data['screen'].to_numpy()
     pattern = pattern_data['pattern'].to_numpy()
@@ -120,4 +120,4 @@ def process_pattern(pattern_data):
     vis = (np.max(patt_norm) - np.min(patt_norm)) / (np.max(patt_norm) + np.min(patt_norm)) 
     # The normalized pattern should be a sinusoid, so the maximum and the minimum are well defined
     
-    return patt_data_norm, vis
+    return patt_data_norm, round(vis, 3)

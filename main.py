@@ -326,13 +326,13 @@ def serve_layout():
 
             html.Div(children = [
                 html.Div(children = [
-                    html.H3(children = 'PLOT'),
                     html.Label(
                         # All the patterns generated are stored in a folder. The dropdown menu below shows the content of that folder, 
                         # letting the user choose a pattern to analyze individually if necessary
-                        dcc.Markdown('Choose pattern to plot')
+                        dcc.Markdown('Choose pattern to view')
                     ),
                     dcc.Dropdown(os.listdir('Patterns'), id = 'select-pattern'),
+                    html.H3(children = 'PLOT'),
                     html.Div([
                         html.Button(id='plot-button', children='Plot')
                     ],
@@ -554,7 +554,7 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width, slit
     dist_2 = 1e4
     wavelen = 500
     screen_size = 20 # [cm] 
-    dx = 0.02 # [cm] (resolution)
+    dx = 0.01 # [cm] (resolution)
     dim = int(screen_size/dx) + 1 # Dimension of the arrays
     pattern = np.zeros(dim) # Array containing the interference pattern
     profile = np.zeros(dim)
