@@ -170,7 +170,9 @@ def serve_layout():
                         id='field-number'
                     ),
                     html.Br(),
-                    html.Div(id = 'field-number-out'),
+                    html.Div([
+                        dcc.Markdown(id = 'field-number-out',  mathjax = True)
+                    ]),
                     html.Br(),
                     html.Label(
                         # Input the number of "scatterers" which produce the field. Essentialy, this number is the number of points of the source.
@@ -193,7 +195,9 @@ def serve_layout():
                     ),
                     html.Br(),
                     # Show chosen value on screen
-                    html.Div(id = 'correlation-length-out'),
+                    html.Div([
+                        dcc.Markdown(id = 'correlation-length-out', mathjax = True)
+                    ]),
                 ],
                 className = 'right'
                 ),
@@ -254,22 +258,24 @@ def serve_layout():
                     html.Br(),
                     html.Label(
                         # Input how much the spatial spectrum should be filtered
-                        dcc.Markdown(r'Filtering ($\mathrm{cm}^{-1}$)', mathjax = True)
+                        dcc.Markdown(r'Filtering range ($\mathrm{cm}^{-1}$)', mathjax = True)
                     ),
                     # I'm going to have a "screen dimension" of about x_M = 10 cm, with a resolution of dx = 0.02 cm, so the bounds in k-space are
                     # k_M = pi/dx = 62.8 cm^(-1) with step dk = pi/x_M = 0.314
                     # Note that here k = 2pi/lambda.
-                    dcc.Slider( 
-                        0.314,
-                        62.8,
-                        step = 0.314,
-                        value = 10,
+                    dcc.RangeSlider( 
+                        0.3,
+                        60.3,
+                        step = 2,
+                        value = [0.3, 10],
                         marks = {str(x): str(x) for x in np.arange(10, 60, 10)},
                         id='filter-width'
                     ),
                     html.Br(),
                     # Show the chosen value on screen
-                    html.Div(id = 'filter-width-out'),
+                    html.Div([
+                        dcc.Markdown(id = 'filter-width-out', mathjax = True)
+                    ]),
                 ],
                 className = 'left_green'
                 ),
@@ -284,19 +290,21 @@ def serve_layout():
                     html.Br(),
                     html.Label(
                         # Input slits spacing
-                        dcc.Markdown(r'Input distance between slits ($\mathrm{mm}$)', mathjax = True)
+                        dcc.Markdown(r'Distance between slits range ($\mathrm{mm}$)', mathjax = True)
                     ),
-                    dcc.Slider( 
+                    dcc.RangeSlider( 
                         4,
                         20,
                         step = 0.5,
-                        value = 4,
+                        value = [4, 10],
                         marks = {str(x): str(x) for x in np.arange(5, 20, 5)},
                         id='slits-dist'
                     ),
                     html.Br(),
                     # Show chosen value on screen
-                    html.Div(id = 'slits-dist-out'),
+                    html.Div([
+                        dcc.Markdown(id = 'slits-dist-out', mathjax = True)
+                    ]),
                     html.Br(),
                     # Input slit width 
                     html.Label(
@@ -400,10 +408,44 @@ def serve_layout():
 
             html.Div(children = [
                 html.Div(children = [
-                    html.H3(children = 'START ANALYSIS'),
+                    html.H3(children = 'ANALYZE ALL PATTERNS WITH THE SAME FILTERING AS SELECTED'),
                     html.Div([
                         # This buttons let the user start or stop the analysis (I did not yet add the callback so for the time being the buttons actually do nothing)
-                        html.Button(id='part-three-button', children='Start'), 
+                        html.Button(id='part-three-one-button', children='Start analysis'), 
+                        html.Button(id='cancel-three-one', children = 'Cancel'),
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        # Counter and progress bar
+                        html.P(id='counter-three-one', children = 'Analysis number 1'),
+                        html.Progress(id='progress-bar-three-one')
+                    ],
+                    className = 'start'
+                    ),
+                    html.H3(children = 'ANALYZE ALL PATTERNS WITH THE SAME SLIT SEPARATION AS SELECTED'),
+                    html.Div([
+                        # This buttons let the user start or stop the analysis (I did not yet add the callback so for the time being the buttons actually do nothing)
+                        html.Button(id='part-three-two-button', children='Start analysis'), 
+                        html.Button(id='cancel-three-two', children = 'Cancel'),
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        # Counter and progress bar
+                        html.P(id='counter-three-two', children = 'Analysis number 1'),
+                        html.Progress(id='progress-bar-three-two')
+                    ],
+                    className = 'start'
+                    ),
+                ],
+                className = 'box_pink'
+                ),
+                html.Div(children = [
+                    html.H3(children = 'GENERAL ANALYSIS'),
+                    html.Div([
+                        # This buttons let the user start or stop the analysis (I did not yet add the callback so for the time being the buttons actually do nothing)
+                        html.Button(id='part-three-button', children='Start analysis'), 
                         html.Button(id='cancel-three', children = 'Cancel'),
                     ],
                     className = 'start'
@@ -419,7 +461,12 @@ def serve_layout():
                 className = 'box_pink'
                 ),
                 ],
-            className = 'container_2_pink'
+            className = 'container_pink'
+            ),
+            html.Div(children = [
+                dcc.Graph(id = 'graph-partial-an', style={'width': '1400px', 'height': '800px'}, mathjax = True),
+            ],
+            className = 'graph'
             ),
         ],
         style = {'display': 'none'},
@@ -464,7 +511,7 @@ def render(tab):
     Input('slits-dist', 'value'),
 )
 def update_values(a, b, c, d): 
-    return a, b, c, d
+    return ['Generating {} fields'.format(a)], ['Rough glass with correlation length {}'.format(b) + r'$\, \mu\mathrm{m}$'], ['Filter width between {} and {}'.format(c[0], c[1]) + r'$\, \mathrm{cm}^{-1}$'], ['Slit separation between {} and {}'.format(d[0], d[1]) + r'$\, \mathrm{mm}$']
 
 @app.long_callback( 
     # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
@@ -546,7 +593,7 @@ def generate_fields(set_progress, n_clicks, field_num, corr):
     progress=[Output('progress-bar-two', 'value'), Output('progress-bar-two', 'max')],
     manager=long_callback_manager
 )
-def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width, slits_dist):
+def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, slits_dist_ext):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
 
@@ -556,44 +603,54 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width, slit
     screen_size = 20 # [cm] 
     dx = 0.01 # [cm] (resolution)
     dim = int(screen_size/dx) + 1 # Dimension of the arrays
-    pattern = np.zeros(dim) # Array containing the interference pattern
-    profile = np.zeros(dim)
+
+    filter_width_step = 2
+    slits_dist_step = 0.5
 
     vect = os.listdir('Speckles')
     
-    k = 1
-    for i in vect:
-        field_data = pd.read_csv('Speckles/' + i) # Read the csv with the speckle field 
-        field = field_data['spec_re'].to_numpy() + field_data['spec_im'].to_numpy() * 1j # Convert to ndarray
-        screen = field_data['screen'].to_numpy() 
-        filt_field = mod.filter(filter_type, field, filter_width) # Spatially filter the field
+    num = (filter_width_ext[1] + filter_width_step - filter_width_ext[0]) * (slits_dist_ext[1] + slits_dist_step - slits_dist_ext[0]) / (filter_width_step * slits_dist_step)
+    counter = 1
 
-        # Add the pattern generated by the speckle field to the average
-        patt_update, prof_update = mod.create_pattern(filt_field, dist_2, slits_dist, slit_width, screen, dim, wavelen) 
-        pattern += patt_update
-        profile += prof_update
-        set_progress((str(k), str(len(vect)))) # Update progress bar
-        k = k + 1
+    for filter_width in np.arange(filter_width_ext[0], filter_width_ext[1] + filter_width_step, filter_width_step):
+        for slits_dist in np.arange(slits_dist_ext[0], slits_dist_ext[1] + slits_dist_step, slits_dist_step):
 
-    max_pattern = np.max(pattern)
-    max_profile = profile[pattern == max_pattern][0]
+            pattern = np.zeros(dim) # Array containing the interference pattern
+            profile = np.zeros(dim)
 
-    norm = max_pattern / max_profile # Normalization of profile
-    profile *= norm
+            for i in vect:
+                field_data = pd.read_csv('Speckles/' + i) # Read the csv with the speckle field 
+                field = field_data['spec_re'].to_numpy() + field_data['spec_im'].to_numpy() * 1j # Convert to ndarray
+                screen = field_data['screen'].to_numpy() 
+                filt_field = mod.filter(filter_type, field, filter_width) # Spatially filter the field
 
-    pattern_data = pd.DataFrame({
-        'screen': screen,
-        'pattern': pattern,
-        'profile': profile,
-        'filter_type': [filter_type for i in range(len(screen))],
-        'filter_width': [filter_width for i in range(len(screen))],
-        'slits_dist': [slits_dist for i in range(len(screen))]
-    }) # Convert to data frame
+                # Add the pattern generated by the speckle field to the average
+                patt_update, prof_update = mod.create_pattern(filt_field, dist_2, slits_dist, slit_width, screen, dim, wavelen) 
+                pattern += patt_update
+                profile += prof_update
 
-    fig = px.line(pattern_data.melt(id_vars = 'screen', value_vars = ['pattern', 'profile']), x = 'screen', y = 'value', title = 'Averaged interference pattern', line_group = 'variable', color = 'variable') # Create the figure of the graph
-    pattern_data.to_csv('Patterns/Pattern_{}.csv'.format(n_clicks)) # Store the pattern to csv
+            max_pattern = np.max(pattern)
+            max_profile = profile[pattern == max_pattern][0]
 
-    return ['Simulation number {}'.format(n_clicks + 1)], fig # Return the outputs
+            norm = max_pattern / max_profile # Normalization of profile
+            profile *= norm
+
+            pattern_data = pd.DataFrame({
+                'screen': screen,
+                'pattern': pattern,
+                'profile': profile,
+                'filter_type': [filter_type for i in range(len(screen))],
+                'filter_width': [filter_width for i in range(len(screen))],
+                'slits_dist': [slits_dist for i in range(len(screen))]
+            }) # Convert to data frame
+
+            fig = px.line(pattern_data.melt(id_vars = 'screen', value_vars = ['pattern', 'profile']), x = 'screen', y = 'value', title = 'Averaged interference pattern', line_group = 'variable', color = 'variable') # Create the figure of the graph
+            pattern_data.to_csv('Patterns/Pattern_{}_{}.csv'.format(n_clicks, counter)) # Store the pattern to csv
+
+            counter += 1
+            set_progress((str(counter), str(num))) # Update progress bar
+
+    return ['Simulation number {}'.format(n_clicks + 1)], fig # Return the number of clicks and the last pattern computed
 
 @callback(
     # This is the callback for the plot of an individual pattern in the data analysis part. A long callback isn't necessary here
@@ -650,6 +707,135 @@ def analyze(n_clicks, patt_name):
     fig_2 = px.line(patt_data_norm, x = 'screen', y = 'pattern', title = 'Normalized interference pattern')
 
     return  ['Visibility = {}'.format(vis)], fig_1, fig_2
+
+@app.long_callback( 
+    # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
+    # Also, long callback allows to manage the layout during the function call
+    output = [
+        Output('counter-three-one', 'children'), 
+        Output('graph-partial-an', 'figure')
+    ],
+    inputs = [
+        Input('part-three-one-button', 'n_clicks'), # The only input is the click of the 'start' button
+        # The other parameters are passed as states, so changing them does not trigger the start of the simulation,
+        State('select-pattern', 'value')
+    ],
+    running=[ # When the simulation is running,
+        (Output('part-three-one-button', 'disabled'), True, False), # The start button is disabled
+        (Output('cancel-three-one', 'disabled'), False, True), # And it is possible to cancel the operation
+        (
+            Output('counter-three-one', 'style'), # Show or hid the counter (visible when not running, hidden when running)
+            {'visibility': 'hidden'},
+            {'visibility': 'visible'},
+        ),
+        (
+            Output('progress-bar-three-one', 'style'), # Show or hid the progress bar (hidden when not running, visible when running)
+            {'visibility': 'visible'},
+            {'visibility': 'hidden'},
+        ),
+    ],
+    cancel = [Input('cancel-three-one', 'n_clicks')], # Link to cancel button id
+    progress = [Output('progress-bar-three-one', 'value'), Output('progress-bar-three-one', 'max')], # Link to progress bar id
+    manager = long_callback_manager
+)
+def analyze_one(set_progress, n_clicks, patt_name):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
+
+    pattern_data = pd.read_csv('Patterns/' + patt_name) 
+    filter_width = pattern_data['filter_width'][0]
+
+    vect = os.listdir('Patterns')
+    num = len(vect)
+
+    visib = []
+    slits_dist = []
+    
+    counter = 1
+    for i in vect:
+        data_temp = pd.read_csv('Patterns/' + i)
+        if data_temp['filter_width'][0] == filter_width:
+            slits_dist.append(data_temp['slits_dist'][0])
+            patt_data_norm, vis = mod.process_pattern(data_temp)
+            visib.append(vis)
+
+        set_progress((str(counter), str(num)))
+                     
+    data = pd.DataFrame({
+        'slits_dist': slits_dist,
+        'vis': visib
+    })
+    
+    fig = px.scatter(data, x = 'slits_dist', y = 'vis')
+
+    return 'Analysis number {}'.format(n_clicks + 1), fig
+
+
+
+@app.long_callback( 
+    # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
+    # Also, long callback allows to manage the layout during the function call
+    output = [
+        Output('counter-three-two', 'children') # Only output is the counter
+    ],
+    inputs = [
+        Input('part-three-two-button', 'n_clicks'), # The only input is the click of the 'start' button
+        # The other parameters are passed as states, so changing them does not trigger the start of the simulation,
+        State('select-pattern', 'value')
+    ],
+    running=[ # When the simulation is running,
+        (Output('part-three-two-button', 'disabled'), True, False), # The start button is disabled
+        (Output('cancel-three-two', 'disabled'), False, True), # And it is possible to cancel the operation
+        (
+            Output('counter-three-two', 'style'), # Show or hid the counter (visible when not running, hidden when running)
+            {'visibility': 'hidden'},
+            {'visibility': 'visible'},
+        ),
+        (
+            Output('progress-bar-three-two', 'style'), # Show or hid the progress bar (hidden when not running, visible when running)
+            {'visibility': 'visible'},
+            {'visibility': 'hidden'},
+        ),
+    ],
+    cancel = [Input('cancel-three-two', 'n_clicks')], # Link to cancel button id
+    progress = [Output('progress-bar-three-two', 'value'), Output('progress-bar-three-two', 'max')], # Link to progress bar id
+    manager = long_callback_manager
+)
+def analyze_two(set_progress, n_clicks, patt_name):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
+
+    pattern_data = pd.read_csv('Patterns/' + patt_name) 
+    slits_dist = pattern_data['slits_dist'][0]
+
+    pattern_fix_filt = pd.DataFrame({
+        'screen': pattern_data['screen']
+    })
+
+    vect = os.listdir('Patterns')
+    num = len(vect)
+
+    visib = []
+    filter_width = []
+    
+    counter = 1
+    for i in vect:
+        data_temp = pd.read_csv('Patterns/' + i)
+        if data_temp['slits_dist'][0] == slits_dist:
+            filter_width.append(data_temp['filter_width'][0])
+            patt_data_norm, vis = mod.process_pattern(data_temp)
+            visib.append(vis)
+
+        set_progress((str(counter), str(num)))
+                     
+    data = pd.DataFrame({
+        'fiter_width': filter_width,
+        'vis': visib
+    })
+    
+    fig = px.line(data, x = 'slits_dist', y = 'vis')
+
+    return 'Analysis number {}'.format(n_clicks + 1), fig
 
 if __name__ == '__main__':
     app.run(debug=True)
