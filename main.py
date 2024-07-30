@@ -293,7 +293,7 @@ def serve_layout():
                         dcc.Markdown(r'Distance between slits range ($\mathrm{mm}$)', mathjax = True)
                     ),
                     dcc.RangeSlider( 
-                        4,
+                        2,
                         20,
                         step = 0.5,
                         value = [4, 10],
