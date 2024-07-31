@@ -5,6 +5,7 @@ import pandas as pd
 from dash import Dash, html, dcc, callback, Output, Input, State, exceptions
 import module as mod # The plan is to put here the functions which do most of the work
 import plotly.express as px
+import plotly.graph_objects as go
 import os
 
 # The following imports are necessary for long callbacks
@@ -351,9 +352,59 @@ def serve_layout():
                     ],
                     className = 'start'
                     ),
-                    html.H3(children = 'PROCESS'),
+                    html.H3(children = 'PRELIMINAR ANALYSIS'),
+                    html.Div(children = [
+                        html.Div([
+                            html.Label(
+                                dcc.Markdown('Guess fit parameter (visibility)')
+                            ),
+                            html.Br(),
+                            dcc.Slider(
+                                0.1, 
+                                1,
+                                step = 0.1,
+                                value = 0.5, 
+                                marks = {str(x/10): str(x/10) for x in np.arange(0, 10, 2)},
+                                id = 'fit-guess'
+                            )
+                        ],
+                        className = 'smol_l_pink'
+                        ),
+                        html.Div([
+                            html.Label(
+                                dcc.Markdown('Options for preliminar analysis')
+                            ),
+                            html.Br(),
+                            dcc.Checklist( # CONSIDER REPLACING WITH RADIO ITEMS
+                                ['Fit guess', 'Extremal points'],
+                                [],
+                                id = 'pre-options',
+                                inline = True
+                            )
+                        ],
+                        className = 'smol_r_pink'
+                        ),
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        html.Button(id='preprocess-button', children='Run')
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        html.P(id='counter-preprocessing', children = 'Run number 1')
+                    ],
+                    className = 'start'
+                    ),
+                    html.H3(children = 'PROCESSING'),
                     html.Div([
                         html.Button(id='process-button', children='Process')
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        html.P(id='counter-processing', children = 'Processing number 1')
                     ],
                     className = 'start'
                     ),
@@ -374,9 +425,10 @@ def serve_layout():
             # I should add ginput-like options to interact with the graph and extract data manually form it
 
             html.Div(children = [
-                dcc.Graph(id = 'pattern-analysis', style={'width': '1400px', 'height': '800px'}, mathjax = True),
+                dcc.Graph(id = 'pattern-analysis', style={'width': '700px', 'height': '400px'}, mathjax = True),
+                dcc.Graph(id = 'patt-preprocess', style={'width': '700px', 'height': '400px'}, mathjax = True),
             ],
-            className = 'graph'
+            style = {'width': '1400px', 'height': '400px', 'display': 'flex', 'background-color': '#000000', 'padding-top': '10px', 'padding-right': '10px', 'padding-bottom': '10px', 'padding-left': '10px', 'margin-bottom': '10px'}
             ),
 
             html.Div(children = [
@@ -387,7 +439,7 @@ def serve_layout():
                 dcc.Graph(id = 'patt-prof', style={'width': '700px', 'height': '400px'}, mathjax = True),
                 dcc.Graph(id = 'patt-norm', style={'width': '700px', 'height': '400px'}, mathjax = True),
             ],
-            style = {'width': '1400px', 'height': '400px', 'display': 'flex', 'background-color': '#000000', 'padding-top': '10px', 'padding-right': '10px', 'padding-bottom': '10px', 'padding-left': '10px'}
+            style = {'width': '1400px', 'height': '400px', 'display': 'flex', 'background-color': '#000000', 'padding-top': '10px', 'padding-right': '10px', 'padding-bottom': '10px', 'padding-left': '10px', 'margin-top': '10px'}
             ),
 
             html.Div(children = [
@@ -551,8 +603,11 @@ def generate_fields(set_progress, n_clicks, field_num, corr):
     dist = 15
     scatt_num = 1000
     wavelen = 500
+    avg_intensity = 0
+
     for i in range(field_num):
         field, screen = mod.generate_speckle_field(corr, source_size, dist, scatt_num, wavelen) # Generate a field
+        avg_intensity += np.mean(np.abs(field).real ** 2)
         field_data = pd.DataFrame({
             'screen': screen, 
             'spec_re': field.real, 
@@ -560,6 +615,9 @@ def generate_fields(set_progress, n_clicks, field_num, corr):
         }) # Create a data frame
         field_data.to_csv('Speckles/speckle_num_{}.csv'.format(i)) # Store in csv
         set_progress((str(i + 1), str(field_num))) # Update progress bar
+
+    with open('numbers.txt', 'w') as f:
+        f.write(str(avg_intensity))
 
     return ['Simulation number {}'.format(n_clicks + 1)] # Return counter
 
@@ -616,7 +674,6 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, 
         for slits_dist in np.arange(slits_dist_ext[0], slits_dist_ext[1] + slits_dist_step, slits_dist_step):
 
             pattern = np.zeros(dim) # Array containing the interference pattern
-            profile = np.zeros(dim)
 
             for i in vect:
                 field_data = pd.read_csv('Speckles/' + i) # Read the csv with the speckle field 
@@ -625,26 +682,18 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, 
                 filt_field = mod.filter(filter_type, field, filter_width) # Spatially filter the field
 
                 # Add the pattern generated by the speckle field to the average
-                patt_update, prof_update = mod.create_pattern(filt_field, dist_2, slits_dist, slit_width, screen, dim, wavelen) 
-                pattern += patt_update
-                profile += prof_update
-
-            max_pattern = np.max(pattern)
-            max_profile = profile[pattern == max_pattern][0]
-
-            norm = max_pattern / max_profile # Normalization of profile
-            profile *= norm
+                pattern += mod.create_pattern(filt_field, dist_2, slits_dist, slit_width, screen, dim, wavelen) 
 
             pattern_data = pd.DataFrame({
                 'screen': screen,
                 'pattern': pattern,
-                'profile': profile,
                 'filter_type': [filter_type for i in range(len(screen))],
                 'filter_width': [filter_width for i in range(len(screen))],
                 'slits_dist': [slits_dist for i in range(len(screen))]
             }) # Convert to data frame
 
-            fig = px.line(pattern_data.melt(id_vars = 'screen', value_vars = ['pattern', 'profile']), x = 'screen', y = 'value', title = 'Averaged interference pattern', line_group = 'variable', color = 'variable') # Create the figure of the graph
+            # fig = px.line(pattern_data.melt(id_vars = 'screen', value_vars = ['profile', 'pattern']), x = 'screen', y = 'value', title = 'Averaged interference pattern', line_group = 'variable', color = 'variable') 
+            fig = px.line(pattern_data, x = 'screen', y = 'pattern', title = 'Averaged interference pattern') # Create the figure of the graph
             pattern_data.to_csv('Patterns/Pattern_{}_{}.csv'.format(n_clicks, counter)) # Store the pattern to csv
 
             counter += 1
@@ -692,21 +741,26 @@ def plot_field(n_clicks, field_name):
     Output('visibility', 'children'),
     Output('patt-prof', 'figure'),
     Output('patt-norm', 'figure'),
+    Output('counter-processing', 'children'),
     Input('process-button', 'n_clicks'), # Input the button click, other parameters are states
     State('select-pattern', 'value')
 )
 def analyze(n_clicks, patt_name):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
+    
+    slit_width = 1 # [mm]
+    wavelen = 500 # [nm]
+    dist_2 = 1e4 # [cm]
 
     pattern_data = pd.read_csv('Patterns/' + patt_name) # Read the pattern from csv
 
-    patt_data_norm, vis = mod.process_pattern(pattern_data)
+    patt_data_proc, vis_vect = mod.process_pattern(pattern_data, slit_width, wavelen, dist_2)
     
-    fig_1 = px.line(pattern_data.melt(id_vars = 'screen', value_vars = ['pattern', 'profile']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
-    fig_2 = px.line(patt_data_norm, x = 'screen', y = 'pattern', title = 'Normalized interference pattern')
+    fig_1 = px.line(patt_data_proc.melt(id_vars = 'screen', value_vars = ['pattern', 'prof_up', 'prof_down']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
+    fig_2 = px.line(patt_data_proc, x = 'screen', y = 'patt_norm', title = 'Normalized interference pattern')
 
-    return  ['Visibility = {}'.format(vis)], fig_1, fig_2
+    return  ['Visibility = {}'.format(vis_vect[-1])], fig_1, fig_2, ['Processing number {}'.format(n_clicks + 1)]
 
 @app.long_callback( 
     # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
@@ -836,6 +890,33 @@ def analyze_two(set_progress, n_clicks, patt_name):
     fig = px.line(data, x = 'slits_dist', y = 'vis')
 
     return 'Analysis number {}'.format(n_clicks + 1), fig
+
+@callback( # Callback for the preliminary analysis
+    Output('patt-preprocess', 'figure'),
+    Output('counter-preprocessing', 'children'),
+    Input('preprocess-button', 'n_clicks'),
+    State('pre-options', 'value'),
+    State('fit-guess', 'value'),
+    State('select-pattern', 'value')
+)
+def pre_process(n_clicks, options, guess, patt_name):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
+    
+    # CONSIDER WRITING ANOTHER FUNCTION IN THE MODULE IN ORDER TO DO ALL THIS
+
+    slit_width = 1 # [mm]
+    wavelen = 500 # [nm]
+    dist_2 = 1e4 # [cm]
+
+    pattern_data = pd.read_csv('Patterns/' + patt_name) # Read the pattern from csv
+
+    fig_data = mod.pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess)
+
+    fig = go.Figure(data = fig_data)
+
+    return fig, 'Run number {}'.format(n_clicks + 1)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 from scipy.fft import fft, ifft, fftshift, ifftshift
+from scipy.optimize import curve_fit
+import plotly.express as px
 
 def generate_speckle_field(corr, source_size, dist, scatt_num, wavelen): # Use, for the first field, a "monte carlo" method
 
@@ -70,49 +72,86 @@ def create_pattern(field, dist_2, slits_dist, slit_width, screen, dim, wavelen):
     slit_width = slit_width / 10
     wavelen = wavelen / 1e7
 
-    pattern_1 = np.zeros(dim, dtype = complex) # Pattern due to first slit
-    pattern_2 = np.zeros(dim, dtype = complex) # Pattern due to second slit
+    pattern = np.zeros(dim, dtype = complex)
 
     index = np.arange(dim)
     slit_1 = np.logical_and(screen >= -slits_dist/2 - slit_width/2, screen <= -slits_dist/2 + slit_width/2)
     slit_2 = np.logical_and(screen >= slits_dist/2 - slit_width/2, screen <= slits_dist/2 + slit_width/2)
-    index_1 = index[slit_1]
-    index_2 = index[slit_2]
+    slit_index = index[np.logical_or(slit_1, slit_2)]
 
-    for i in index_1:
-        pattern_1 += field[i] * np.exp(1j * 2 * np.pi * np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)/wavelen)/np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)
-
-    for i in index_2:
-        pattern_2 += field[i] * np.exp(1j * 2 * np.pi * np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)/wavelen)/np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)
-
-
-    patt_intensity = np.abs(pattern_1 + pattern_2).real ** 2
-    prof_intensity = np.abs(pattern_1).real ** 2 + np.abs(pattern_2).real ** 2 
-    # Simply neglecting the interference term could be a good approximation for the profile
+    for i in slit_index:
+        pattern += field[i] * np.exp(1j * 2 * np.pi * np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)/wavelen)/np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)
 
     # Return the interference pattern and the profile.
-    return patt_intensity, prof_intensity
+    return np.abs(pattern).real ** 2
 
 # dist_2 = 1e4 # [cm]
 # wavelen = 500 # [nm]
 # slit_width = 1 # [mm]
 
-def process_pattern(pattern_data):
+def calc_extremal(vect, x_axis, tolerance):
+
+    vect_max = []
+    vect_min = []
+
+    dx = x_axis[1] - x_axis[0]
+
+    i = 0
+    while i < len(vect):
+        if vect[i] == np.max(vect[np.logical_and(x_axis > x_axis[i] - tolerance/2, x_axis < x_axis[i] + tolerance/2)]):
+            vect_max.append(i)
+            i += round(tolerance/(2 * dx))
+        elif vect[i] == np.min(vect[np.logical_and(x_axis > x_axis[i] - tolerance/2, x_axis < x_axis[i] + tolerance/2)]):
+            vect_min.append(i)
+            i += round(tolerance/(2 * dx))
+        else:
+            i += 1
+
+            
+    return vect_max, vect_min
+
+def process_pattern(pattern_data, slit_width, wavelen, dist_2):
+
     cut = 2.5 # [cm]
+    slits_dist = pattern_data['slits_dist'][0]
+
+    with open('numbers.txt', 'r') as f:
+        avg_intensity = float(f.read())
+
+    def fit_up(vect, vis): # Function for fitting the upper profile
+        return avg_intensity * (np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) + np.sinc((vect + slits_dist/2) * slit_width / (wavelen * dist_2)) + 2 * vis * np.sinc(slit_width * slits_dist / (wavelen * dist_2)) * np.sinc(vect * slit_width / (wavelen * dist_2)))/dist_2 ** 2
+    
+    def fit_down(vect, vis): # Function for fitting the lower profile
+        return avg_intensity * (np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) + np.sinc((vect + slits_dist/2) * slit_width / (wavelen * dist_2)) - 2 * vis * np.sinc(slit_width * slits_dist / (wavelen * dist_2)) * np.sinc(vect * slit_width / (wavelen * dist_2)))/dist_2 ** 2
+
+    slits_dist = slits_dist / 10 # Convert lengths to cm
+    slit_width = slit_width / 10
+    wavelen = wavelen / 1e7 
+
+    tolerance = 0.1 # [cm] (consider adding this as an input)
 
     screen = pattern_data['screen'].to_numpy()
     pattern = pattern_data['pattern'].to_numpy()
-    profile = pattern_data['profile'].to_numpy()
 
-    pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part
+    pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part (the approximation used for the fit only works for small y)
     screen_cut = screen[np.logical_and(screen >= -cut, screen <= cut)]
-    profile_cut = profile[np.logical_and(screen >= -cut, screen <= cut)]
 
-    patt_norm = pattern_cut / profile_cut # Pattern modulo finite slit size effects
+    patt_max, patt_min = calc_extremal(pattern_cut, screen_cut, tolerance)
 
-    patt_data_norm = pd.DataFrame({
+    popt_up, pcov_up = curve_fit(fit_up, screen_cut[patt_max], pattern_cut[patt_max], p0 = 0.5)
+    popt_down, pcov_up = curve_fit(fit_down, screen_cut[patt_min], pattern_cut[patt_min], p0 = 0.5)
+
+    patt_up = fit_up(screen_cut, *popt_up)
+    patt_down = fit_down(screen_cut, *popt_down)
+
+    patt_norm = pattern_cut/patt_up # Normalized pattern
+
+    patt_data_proc = pd.DataFrame({
         'screen': screen_cut,
-        'pattern': patt_norm
+        'pattern': pattern_cut,
+        'patt_norm': patt_norm,
+        'prof_up': patt_up,
+        'prof_down': patt_down
     })
 
     # Calculation of visibility
@@ -120,4 +159,55 @@ def process_pattern(pattern_data):
     vis = (np.max(patt_norm) - np.min(patt_norm)) / (np.max(patt_norm) + np.min(patt_norm)) 
     # The normalized pattern should be a sinusoid, so the maximum and the minimum are well defined
     
-    return patt_data_norm, round(vis, 3)
+    return patt_data_proc, [round(*popt_up, 3), round(*popt_down, 3), round(vis, 3)]
+
+def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess):
+
+    slits_dist = pattern_data['slits_dist'][0]
+    
+    slits_dist = slits_dist / 10 # Convert lengths to cm
+    slit_width = slit_width / 10
+    wavelen = wavelen / 1e7 
+    
+    screen = pattern_data['screen'].to_numpy()
+    pattern = pattern_data['pattern'].to_numpy()
+
+    fig1 = px.line(pattern_data, x = 'screen', y = 'pattern')
+    fig1.update_traces(line = dict(color = 'rgba(50,50,50,0.2)'))
+    fig_data = fig1.data
+
+    for i in options:
+        if i == 'Extremal points':
+            tolerance = 0.1 # [cm] (consider adding this as an input)
+            patt_max, patt_min = calc_extremal(pattern, screen, tolerance)
+
+            which = ['max' for l in range(len(patt_max))] + ['min' for l in range(len(patt_min))]
+
+            maxmin_data = pd.DataFrame({
+                'points': np.concatenate((screen[patt_max], screen[patt_min])),
+                'maxes': np.concatenate((pattern[patt_max], pattern[patt_min])),
+                'which': which
+            })
+
+            fig2 = px.scatter(maxmin_data, x = 'points', y = 'maxes', color = 'which')
+
+            fig_data += fig2.data
+        
+        elif i == 'Fit guess':
+
+            with open('numbers.txt', 'r') as f:
+                avg_intensity = float(f.read())
+            
+            prof_up = avg_intensity * (np.sinc( (screen - slits_dist/2) * slit_width / (wavelen * dist_2)) + np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) + 2 * guess * np.sinc(slit_width * slits_dist / (wavelen * dist_2)) * np.sinc(screen * slit_width / (wavelen * dist_2)))/dist_2 ** 2
+            prof_down = avg_intensity *  (np.sinc( (screen - slits_dist/2) * slit_width / (wavelen * dist_2)) + np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) - 2 * guess * np.sinc(slit_width * slits_dist / (wavelen * dist_2)) * np.sinc(screen * slit_width / (wavelen * dist_2)))/dist_2 ** 2
+
+            guess_data = pd.DataFrame({
+                'screen': screen,
+                'prof_up': prof_up,
+                'prof_down': prof_down
+            })
+
+            fig3 = px.line(guess_data.melt(id_vars = 'screen', value_vars = ['prof_up', 'prof_down']), x = 'screen', y = 'value', line_group = 'variable', color = 'variable')
+            fig_data += fig3.data
+
+    return fig_data
