@@ -22,7 +22,7 @@ def generate_speckle_field(corr, source_size, dist, scatt_num, wavelen): # Use, 
             scatt = np.random.uniform(-source_size/2, source_size/2) # i-th scatterer position
             phase_shift = np.random.uniform(-np.pi, np.pi) # Random phase
             # Add the field produced by the source point (Huygens principle)
-            field += np.exp(1j * 2 * np.pi * np.sqrt(dist ** 2 + (scatt - screen) ** 2)/wavelen + 1j * phase_shift/wavelen)/np.sqrt(dist ** 2 + (scatt - screen) ** 2) 
+            field += np.exp(1j * 2 * np.pi * np.sqrt(dist ** 2 + (scatt - screen) ** 2)/wavelen + 1j * phase_shift/wavelen)/np.sqrt(1 + (scatt - screen) ** 2/dist ** 2) 
     else:
         # If there is a nonzero correlation length, the wave from each scatterer is profiled by an Airy disc (or maybe a gaussian function is better). 
         # The sum and the speckle field are calculated in the same way as above
@@ -31,7 +31,7 @@ def generate_speckle_field(corr, source_size, dist, scatt_num, wavelen): # Use, 
             scatt = np.random.uniform(-source_size/2, source_size/2) # i-th scatterer position
             phase_shift = np.random.uniform(-np.pi, np.pi) # Random phase
             # Add the field produced by the source point (Huygens principle) with gaussian profile. This has not been tested yet.
-            field += np.exp(1j * 2 * np.pi * np.sqrt(dist ** 2 + (scatt - screen) ** 2)/wavelen + 1j * phase_shift/wavelen) * np.exp(-((screen - scatt) * corr) ** 2)/np.sqrt(dist ** 2 + (scatt - screen) ** 2)
+            field += np.exp(1j * 2 * np.pi * np.sqrt(dist ** 2 + (scatt - screen) ** 2)/wavelen + 1j * phase_shift/wavelen) * np.exp(-((screen - scatt) * corr) ** 2)/np.sqrt(1 + (scatt - screen) ** 2 / dist ** 2)
     
     # return the array with the field 
     return field/scatt_num, screen
@@ -80,7 +80,7 @@ def create_pattern(field, dist_2, slits_dist, slit_width, screen, dim, wavelen):
     slit_index = index[np.logical_or(slit_1, slit_2)]
 
     for i in slit_index:
-        pattern += field[i] * np.exp(1j * 2 * np.pi * np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)/wavelen)/np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)
+        pattern += field[i] * np.exp(1j * 2 * np.pi * np.sqrt(dist_2 ** 2 + (screen[i] - screen) ** 2)/wavelen)/np.sqrt(1 + (screen[i] - screen) ** 2 / dist_2 ** 2)
 
     # Return the interference pattern and the profile.
     return np.abs(pattern).real ** 2
@@ -110,7 +110,7 @@ def calc_extremal(vect, x_axis, tolerance):
             
     return vect_max, vect_min
 
-def process_pattern(pattern_data, slit_width, wavelen, dist_2):
+def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1, A_2):
 
     cut = 2.5 # [cm]
     slits_dist = pattern_data['slits_dist'][0]
@@ -118,11 +118,11 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2):
     with open('numbers.txt', 'r') as f:
         avg_intensity = float(f.read())
 
-    def fit_up(vect, vis): # Function for fitting the upper profile
-        return avg_intensity * (np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) + np.sinc((vect + slits_dist/2) * slit_width / (wavelen * dist_2)) + 2 * vis * np.sinc(slit_width * slits_dist / (wavelen * dist_2)) * np.sinc(vect * slit_width / (wavelen * dist_2)))/dist_2 ** 2
+    def fit_up(vect, vis, A): # Function for fitting the upper profile
+        return 2 * A * avg_intensity * (np.sinc( (vect + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + 2 * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 * vis )
     
-    def fit_down(vect, vis): # Function for fitting the lower profile
-        return avg_intensity * (np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) + np.sinc((vect + slits_dist/2) * slit_width / (wavelen * dist_2)) - 2 * vis * np.sinc(slit_width * slits_dist / (wavelen * dist_2)) * np.sinc(vect * slit_width / (wavelen * dist_2)))/dist_2 ** 2
+    # def fit_down(vect, vis, A): # Function for fitting the lower profile
+    #     return 2 * A * avg_intensity * (np.sinc((vect + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 - 2 * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 * vis )
 
     slits_dist = slits_dist / 10 # Convert lengths to cm
     slit_width = slit_width / 10
@@ -138,20 +138,26 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2):
 
     patt_max, patt_min = calc_extremal(pattern_cut, screen_cut, tolerance)
 
-    popt_up, pcov_up = curve_fit(fit_up, screen_cut[patt_max], pattern_cut[patt_max], p0 = 0.5)
-    popt_down, pcov_up = curve_fit(fit_down, screen_cut[patt_min], pattern_cut[patt_min], p0 = 0.5)
+    popt_up, pcov_up = curve_fit(fit_up, screen_cut[patt_max], pattern_cut[patt_max], p0 = (guess, A_1))
+    # popt_down, pcov_up = curve_fit(fit_down, screen_cut[patt_min], pattern_cut[patt_min], p0 = (guess, A_2))
 
-    patt_up = fit_up(screen_cut, *popt_up)
-    patt_down = fit_down(screen_cut, *popt_down)
+    patt_up = fit_up(screen, *popt_up)
+    # patt_down = fit_down(screen, *popt_down)
 
-    patt_norm = pattern_cut/patt_up # Normalized pattern
+    norm = fit_up(screen_cut, *popt_up)
+
+    patt_norm = pattern_cut/norm # Normalized pattern
 
     patt_data_proc = pd.DataFrame({
-        'screen': screen_cut,
-        'pattern': pattern_cut,
-        'patt_norm': patt_norm,
-        'prof_up': patt_up,
-        'prof_down': patt_down
+        'screen': screen,
+        'pattern': pattern,
+    #     'prof_down': patt_down,
+        'prof_up': patt_up
+    })
+
+    patt_data_norm = pd.DataFrame({
+        'screen_cut': screen_cut,
+        'patt_norm': patt_norm
     })
 
     # Calculation of visibility
@@ -159,9 +165,9 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2):
     vis = (np.max(patt_norm) - np.min(patt_norm)) / (np.max(patt_norm) + np.min(patt_norm)) 
     # The normalized pattern should be a sinusoid, so the maximum and the minimum are well defined
     
-    return patt_data_proc, [round(*popt_up, 3), round(*popt_down, 3), round(vis, 3)]
+    return patt_data_proc, patt_data_norm, round(vis, 3)
 
-def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess):
+def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1, A_2):
 
     slits_dist = pattern_data['slits_dist'][0]
     
@@ -198,16 +204,17 @@ def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess):
             with open('numbers.txt', 'r') as f:
                 avg_intensity = float(f.read())
             
-            prof_up = avg_intensity * (np.sinc( (screen - slits_dist/2) * slit_width / (wavelen * dist_2)) + np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) + 2 * guess * np.sinc(slit_width * slits_dist / (wavelen * dist_2)) * np.sinc(screen * slit_width / (wavelen * dist_2)))/dist_2 ** 2
-            prof_down = avg_intensity *  (np.sinc( (screen - slits_dist/2) * slit_width / (wavelen * dist_2)) + np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) - 2 * guess * np.sinc(slit_width * slits_dist / (wavelen * dist_2)) * np.sinc(screen * slit_width / (wavelen * dist_2)))/dist_2 ** 2
+            prof_up = 2 * A_1 * avg_intensity * (np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((screen - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + 2 * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * guess )
+            # prof_down = 2 * A_2 * avg_intensity * (np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((screen - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 - 2 * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * guess )
 
             guess_data = pd.DataFrame({
                 'screen': screen,
                 'prof_up': prof_up,
-                'prof_down': prof_down
+            #     'prof_down': prof_down
             })
 
-            fig3 = px.line(guess_data.melt(id_vars = 'screen', value_vars = ['prof_up', 'prof_down']), x = 'screen', y = 'value', line_group = 'variable', color = 'variable')
+            # fig3 = px.line(guess_data.melt(id_vars = 'screen', value_vars = ['prof_up', 'prof_down']), x = 'screen', y = 'value', line_group = 'variable', color = 'variable')
+            fig3 = px.line(guess_data, x = 'screen', y = 'prof_up')
             fig_data += fig3.data
 
     return fig_data

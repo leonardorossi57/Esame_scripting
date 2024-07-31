@@ -352,7 +352,7 @@ def serve_layout():
                     ],
                     className = 'start'
                     ),
-                    html.H3(children = 'PRELIMINAR ANALYSIS'),
+                    html.H3(children = 'PRELIMINARY ANALYSIS'),
                     html.Div(children = [
                         html.Div([
                             html.Label(
@@ -372,7 +372,39 @@ def serve_layout():
                         ),
                         html.Div([
                             html.Label(
-                                dcc.Markdown('Options for preliminar analysis')
+                                dcc.Markdown('(Amplitude correction 1)')
+                            ),
+                            html.Br(),
+                            dcc.Slider(
+                                0.5, 
+                                1.5,
+                                step = 0.1,
+                                value = 1, 
+                                marks = {str(x/10): str(x/10) for x in np.arange(5, 15, 5)},
+                                id = 'fit-guess-2'
+                            )
+                        ],
+                        className = 'smol_l_pink'
+                        ),
+                        html.Div([
+                            html.Label(
+                                dcc.Markdown('(Amplitude correction 2)')
+                            ),
+                            html.Br(),
+                            dcc.Slider(
+                                0.5, 
+                                1.5,
+                                step = 0.1,
+                                value = 1, 
+                                marks = {str(x/10): str(x/10) for x in np.arange(5, 15, 5)},
+                                id = 'fit-guess-3'
+                            )
+                        ],
+                        className = 'smol_l_pink'
+                        ),
+                        html.Div([
+                            html.Label(
+                                dcc.Markdown('Options for preliminary analysis')
                             ),
                             html.Br(),
                             dcc.Checklist( # CONSIDER REPLACING WITH RADIO ITEMS
@@ -743,9 +775,12 @@ def plot_field(n_clicks, field_name):
     Output('patt-norm', 'figure'),
     Output('counter-processing', 'children'),
     Input('process-button', 'n_clicks'), # Input the button click, other parameters are states
-    State('select-pattern', 'value')
+    State('select-pattern', 'value'),
+    State('fit-guess', 'value'),
+    State('fit-guess-2', 'value'),
+    State('fit-guess-3', 'value')
 )
-def analyze(n_clicks, patt_name):
+def analyze(n_clicks, patt_name, guess, A_1, A_2):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
@@ -755,12 +790,13 @@ def analyze(n_clicks, patt_name):
 
     pattern_data = pd.read_csv('Patterns/' + patt_name) # Read the pattern from csv
 
-    patt_data_proc, vis_vect = mod.process_pattern(pattern_data, slit_width, wavelen, dist_2)
+    patt_data_proc, patt_data_norm, vis = mod.process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1, A_2)
     
-    fig_1 = px.line(patt_data_proc.melt(id_vars = 'screen', value_vars = ['pattern', 'prof_up', 'prof_down']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
-    fig_2 = px.line(patt_data_proc, x = 'screen', y = 'patt_norm', title = 'Normalized interference pattern')
+    # fig_1 = px.line(patt_data_proc.melt(id_vars = 'screen', value_vars = ['pattern', 'prof_up', 'prof_down']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
+    fig_1 = px.line(patt_data_proc.melt(id_vars = 'screen', value_vars = ['pattern', 'prof_up']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
+    fig_2 = px.line(patt_data_norm, x = 'screen_cut', y = 'patt_norm', title = 'Normalized interference pattern')
 
-    return  ['Visibility = {}'.format(vis_vect[-1])], fig_1, fig_2, ['Processing number {}'.format(n_clicks + 1)]
+    return  ['Visibility = {}'.format(vis)], fig_1, fig_2, ['Processing number {}'.format(n_clicks + 1)]
 
 @app.long_callback( 
     # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
@@ -810,7 +846,7 @@ def analyze_one(set_progress, n_clicks, patt_name):
         data_temp = pd.read_csv('Patterns/' + i)
         if data_temp['filter_width'][0] == filter_width:
             slits_dist.append(data_temp['slits_dist'][0])
-            patt_data_norm, vis = mod.process_pattern(data_temp)
+            _, _, vis = mod.process_pattern(data_temp)
             visib.append(vis)
 
         set_progress((str(counter), str(num)))
@@ -862,10 +898,6 @@ def analyze_two(set_progress, n_clicks, patt_name):
     pattern_data = pd.read_csv('Patterns/' + patt_name) 
     slits_dist = pattern_data['slits_dist'][0]
 
-    pattern_fix_filt = pd.DataFrame({
-        'screen': pattern_data['screen']
-    })
-
     vect = os.listdir('Patterns')
     num = len(vect)
 
@@ -877,7 +909,7 @@ def analyze_two(set_progress, n_clicks, patt_name):
         data_temp = pd.read_csv('Patterns/' + i)
         if data_temp['slits_dist'][0] == slits_dist:
             filter_width.append(data_temp['filter_width'][0])
-            patt_data_norm, vis = mod.process_pattern(data_temp)
+            _, _, vis = mod.process_pattern(data_temp)
             visib.append(vis)
 
         set_progress((str(counter), str(num)))
@@ -897,9 +929,11 @@ def analyze_two(set_progress, n_clicks, patt_name):
     Input('preprocess-button', 'n_clicks'),
     State('pre-options', 'value'),
     State('fit-guess', 'value'),
+    State('fit-guess-2', 'value'),
+    State('fit-guess-3', 'value'),
     State('select-pattern', 'value')
 )
-def pre_process(n_clicks, options, guess, patt_name):
+def pre_process(n_clicks, options, guess, A_1, A_2, patt_name):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
@@ -911,7 +945,7 @@ def pre_process(n_clicks, options, guess, patt_name):
 
     pattern_data = pd.read_csv('Patterns/' + patt_name) # Read the pattern from csv
 
-    fig_data = mod.pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess)
+    fig_data = mod.pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1, A_2)
 
     fig = go.Figure(data = fig_data)
 
