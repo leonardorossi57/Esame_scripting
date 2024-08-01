@@ -489,69 +489,6 @@ def serve_layout():
                 className = 'inner_pink')
             ],
             className = 'container_pink'),
-
-            html.Div(children = [
-                html.Div(children = [
-                    html.H3(children = 'ANALYZE ALL PATTERNS WITH THE SAME FILTERING AS SELECTED'),
-                    html.Div([
-                        # This buttons let the user start or stop the analysis (I did not yet add the callback so for the time being the buttons actually do nothing)
-                        html.Button(id='part-three-one-button', children='Start analysis'), 
-                        html.Button(id='cancel-three-one', children = 'Cancel'),
-                    ],
-                    className = 'start'
-                    ),
-                    html.Div([
-                        # Counter and progress bar
-                        html.P(id='counter-three-one', children = 'Analysis number 1'),
-                        html.Progress(id='progress-bar-three-one')
-                    ],
-                    className = 'start'
-                    ),
-                    html.H3(children = 'ANALYZE ALL PATTERNS WITH THE SAME SLIT SEPARATION AS SELECTED'),
-                    html.Div([
-                        # This buttons let the user start or stop the analysis (I did not yet add the callback so for the time being the buttons actually do nothing)
-                        html.Button(id='part-three-two-button', children='Start analysis'), 
-                        html.Button(id='cancel-three-two', children = 'Cancel'),
-                    ],
-                    className = 'start'
-                    ),
-                    html.Div([
-                        # Counter and progress bar
-                        html.P(id='counter-three-two', children = 'Analysis number 1'),
-                        html.Progress(id='progress-bar-three-two')
-                    ],
-                    className = 'start'
-                    ),
-                ],
-                className = 'box_pink'
-                ),
-                html.Div(children = [
-                    html.H3(children = 'GENERAL ANALYSIS'),
-                    html.Div([
-                        # This buttons let the user start or stop the analysis (I did not yet add the callback so for the time being the buttons actually do nothing)
-                        html.Button(id='part-three-button', children='Start analysis'), 
-                        html.Button(id='cancel-three', children = 'Cancel'),
-                    ],
-                    className = 'start'
-                    ),
-                    html.Div([
-                        # Counter and progress bar
-                        html.P(id='counter-three', children = 'Analysis number 1'),
-                        html.Progress(id='progress-bar-three')
-                    ],
-                    className = 'start'
-                    ),
-                ],
-                className = 'box_pink'
-                ),
-                ],
-            className = 'container_pink'
-            ),
-            html.Div(children = [
-                dcc.Graph(id = 'graph-partial-an', style={'width': '1400px', 'height': '800px'}, mathjax = True),
-            ],
-            className = 'graph'
-            ),
         ],
         style = {'display': 'none'},
         id = 'fourth-tab'
@@ -793,135 +730,10 @@ def analyze(n_clicks, patt_name, guess, A_1, A_2):
     patt_data_proc, patt_data_norm, vis = mod.process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1, A_2)
     
     # fig_1 = px.line(patt_data_proc.melt(id_vars = 'screen', value_vars = ['pattern', 'prof_up', 'prof_down']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
-    fig_1 = px.line(patt_data_proc.melt(id_vars = 'screen', value_vars = ['pattern', 'prof_up']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
+    fig_1 = px.line(patt_data_proc.melt(id_vars = 'screen', value_vars = ['pattern', 'prof_up', 'prof_down']), x = 'screen', y = 'value', title = 'Interference pattern', line_group = 'variable', color = 'variable')
     fig_2 = px.line(patt_data_norm, x = 'screen_cut', y = 'patt_norm', title = 'Normalized interference pattern')
 
     return  ['Visibility = {}'.format(vis)], fig_1, fig_2, ['Processing number {}'.format(n_clicks + 1)]
-
-@app.long_callback( 
-    # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
-    # Also, long callback allows to manage the layout during the function call
-    output = [
-        Output('counter-three-one', 'children'), 
-        Output('graph-partial-an', 'figure')
-    ],
-    inputs = [
-        Input('part-three-one-button', 'n_clicks'), # The only input is the click of the 'start' button
-        # The other parameters are passed as states, so changing them does not trigger the start of the simulation,
-        State('select-pattern', 'value')
-    ],
-    running=[ # When the simulation is running,
-        (Output('part-three-one-button', 'disabled'), True, False), # The start button is disabled
-        (Output('cancel-three-one', 'disabled'), False, True), # And it is possible to cancel the operation
-        (
-            Output('counter-three-one', 'style'), # Show or hid the counter (visible when not running, hidden when running)
-            {'visibility': 'hidden'},
-            {'visibility': 'visible'},
-        ),
-        (
-            Output('progress-bar-three-one', 'style'), # Show or hid the progress bar (hidden when not running, visible when running)
-            {'visibility': 'visible'},
-            {'visibility': 'hidden'},
-        ),
-    ],
-    cancel = [Input('cancel-three-one', 'n_clicks')], # Link to cancel button id
-    progress = [Output('progress-bar-three-one', 'value'), Output('progress-bar-three-one', 'max')], # Link to progress bar id
-    manager = long_callback_manager
-)
-def analyze_one(set_progress, n_clicks, patt_name):
-    if n_clicks is None:
-        raise exceptions.PreventUpdate()
-
-    pattern_data = pd.read_csv('Patterns/' + patt_name) 
-    filter_width = pattern_data['filter_width'][0]
-
-    vect = os.listdir('Patterns')
-    num = len(vect)
-
-    visib = []
-    slits_dist = []
-    
-    counter = 1
-    for i in vect:
-        data_temp = pd.read_csv('Patterns/' + i)
-        if data_temp['filter_width'][0] == filter_width:
-            slits_dist.append(data_temp['slits_dist'][0])
-            _, _, vis = mod.process_pattern(data_temp)
-            visib.append(vis)
-
-        set_progress((str(counter), str(num)))
-                     
-    data = pd.DataFrame({
-        'slits_dist': slits_dist,
-        'vis': visib
-    })
-    
-    fig = px.scatter(data, x = 'slits_dist', y = 'vis')
-
-    return 'Analysis number {}'.format(n_clicks + 1), fig
-
-
-
-@app.long_callback( 
-    # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
-    # Also, long callback allows to manage the layout during the function call
-    output = [
-        Output('counter-three-two', 'children') # Only output is the counter
-    ],
-    inputs = [
-        Input('part-three-two-button', 'n_clicks'), # The only input is the click of the 'start' button
-        # The other parameters are passed as states, so changing them does not trigger the start of the simulation,
-        State('select-pattern', 'value')
-    ],
-    running=[ # When the simulation is running,
-        (Output('part-three-two-button', 'disabled'), True, False), # The start button is disabled
-        (Output('cancel-three-two', 'disabled'), False, True), # And it is possible to cancel the operation
-        (
-            Output('counter-three-two', 'style'), # Show or hid the counter (visible when not running, hidden when running)
-            {'visibility': 'hidden'},
-            {'visibility': 'visible'},
-        ),
-        (
-            Output('progress-bar-three-two', 'style'), # Show or hid the progress bar (hidden when not running, visible when running)
-            {'visibility': 'visible'},
-            {'visibility': 'hidden'},
-        ),
-    ],
-    cancel = [Input('cancel-three-two', 'n_clicks')], # Link to cancel button id
-    progress = [Output('progress-bar-three-two', 'value'), Output('progress-bar-three-two', 'max')], # Link to progress bar id
-    manager = long_callback_manager
-)
-def analyze_two(set_progress, n_clicks, patt_name):
-    if n_clicks is None:
-        raise exceptions.PreventUpdate()
-
-    pattern_data = pd.read_csv('Patterns/' + patt_name) 
-    slits_dist = pattern_data['slits_dist'][0]
-
-    vect = os.listdir('Patterns')
-    num = len(vect)
-
-    visib = []
-    filter_width = []
-    
-    counter = 1
-    for i in vect:
-        data_temp = pd.read_csv('Patterns/' + i)
-        if data_temp['slits_dist'][0] == slits_dist:
-            filter_width.append(data_temp['filter_width'][0])
-            _, _, vis = mod.process_pattern(data_temp)
-            visib.append(vis)
-
-        set_progress((str(counter), str(num)))
-                     
-    data = pd.DataFrame({
-        'fiter_width': filter_width,
-        'vis': visib
-    })
-    
-    fig = px.line(data, x = 'slits_dist', y = 'vis')
-
-    return 'Analysis number {}'.format(n_clicks + 1), fig
 
 @callback( # Callback for the preliminary analysis
     Output('patt-preprocess', 'figure'),
@@ -936,8 +748,6 @@ def analyze_two(set_progress, n_clicks, patt_name):
 def pre_process(n_clicks, options, guess, A_1, A_2, patt_name):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
-    
-    # CONSIDER WRITING ANOTHER FUNCTION IN THE MODULE IN ORDER TO DO ALL THIS
 
     slit_width = 1 # [mm]
     wavelen = 500 # [nm]
