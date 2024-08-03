@@ -10,7 +10,7 @@ def generate_speckle_field(corr, source_size, dist, scatt_num, wavelen): # Use, 
     wavelen = wavelen / 1e7
 
     screen_size = 20 # [cm] (section of the beam under analysis)
-    dx = 0.01 # [cm] (resolution)
+    dx = 0.005 # [cm] (resolution)
     dim = int(screen_size/dx) + 1 # Dimension of the arrays
     field = np.zeros(dim, dtype = complex) # Array containing the speckle field
     screen = np.linspace(-screen_size/2, screen_size/2, dim)
@@ -39,7 +39,7 @@ def generate_speckle_field(corr, source_size, dist, scatt_num, wavelen): # Use, 
 def filter(filter_type, field, filter_width):
 
     screen_size = 20 # [cm] (section of the beam under analysis)
-    dx = 0.01 # [cm] (resolution)
+    dx = 0.005 # [cm] (resolution)
         
     kspace_size = 2 * np.pi/dx
     dk = 2 * np.pi/screen_size
@@ -110,7 +110,7 @@ def calc_extremal(vect, x_axis, tolerance):
             
     return vect_max, vect_min
 
-def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1, A_2):
+def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1):
 
     cut = 2.5 # [cm]
     slits_dist = pattern_data['slits_dist'][0]
@@ -140,7 +140,7 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1, A_2):
 
     def func_1(xx):
         aa, v = xx[0], xx[1]
-        return np.mean((fit_up(screen[patt_max], aa, v) - pattern[patt_max]) ** 2)
+        return np.mean((fit_up(screen[patt_max], aa, v) - pattern[patt_max]) ** 2) + np.mean((fit_down(screen[patt_min], aa, v) - pattern[patt_min]) ** 2)
     
     res = minimize(func_1, x0 = [A_1, guess])
     popt = res.x
@@ -174,7 +174,7 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1, A_2):
     
     return patt_data_proc, patt_data_norm, round(vis, 3)
 
-def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1, A_2):
+def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1):
 
     slits_dist = pattern_data['slits_dist'][0]
     
@@ -212,7 +212,7 @@ def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1, 
                 avg_intensity = float(f.read())
             
             prof_up = 2 * A_1 * avg_intensity * (np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((screen - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + 2 * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * guess )
-            prof_down = 2 * A_2 * avg_intensity * (np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((screen - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 - 2 * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * guess )
+            prof_down = 2 * A_1 * avg_intensity * (np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((screen - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 - 2 * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * guess )
 
             guess_data = pd.DataFrame({
                 'screen': screen,
@@ -225,3 +225,36 @@ def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1, 
             fig_data += fig3.data
 
     return fig_data
+
+def fast_process(pattern_data, slit_width, wavelen, dist_2):
+
+    cut = 2.5 # [cm]
+    slits_dist = pattern_data['slits_dist'][0]
+
+    with open('numbers.txt', 'r') as f:
+        avg_intensity = float(f.read())
+
+    def fit_up(vect): # Function for fitting the upper profile
+        return 2 * avg_intensity * (np.sinc((vect + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2)
+   
+    slits_dist = slits_dist / 10 # Convert lengths to cm
+    slit_width = slit_width / 10
+    wavelen = wavelen / 1e7 
+
+    screen = pattern_data['screen'].to_numpy()
+    pattern = pattern_data['pattern'].to_numpy()
+
+    pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part (the approximation used for the fit only works for small y)
+    screen_cut = screen[np.logical_and(screen >= -cut, screen <= cut)]
+
+    mpoint = screen_cut[pattern_cut == np.max(pattern_cut)][0]
+    norm = fit_up(screen_cut) * np.max(pattern_cut) / (fit_up(mpoint))
+
+    patt_norm = pattern_cut/norm # Normalized pattern
+
+    # Calculation of visibility
+
+    vis = (np.max(patt_norm) - np.min(patt_norm)) / (np.max(patt_norm) + np.min(patt_norm)) 
+    # The normalized pattern should be a sinusoid, so the maximum and the minimum are well defined
+    
+    return round(vis, 3)
