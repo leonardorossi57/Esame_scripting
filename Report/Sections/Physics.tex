@@ -1,0 +1,97 @@
+\section{Review of the physics}
+
+\subsection{Speckle fields} \label{speckles}
+
+A "speckle field" is an optical field with a random pattern of constructive and destructive interference, which gives rise to little dots of lights called "speckles". 
+A speckle field can be studied statistically, usually only considering first- and second-order statistics, i.e. the intensity distribution and the two-point 
+correlation function. \\
+
+The intensity correlation function of a speckle field with intensity $I(\bm x) \propto \langle |\bm E(\bm x)|^2 \rangle$, and its 
+normalized version, are given by (assuming that they only depend on the separation between the two points)
+
+\begin{equation}
+    G(\bm s) = \langle I(\bm x)I(\bm x + \bm s) \rangle, \qquad g(\bm s) = \frac{G(\bm s)}{\langle I(\bm x)^2 \rangle}.
+\end{equation}
+
+$\langle \ \rangle$ denotes the average over an ensemble of fields. The intensity correlation function can be computed directly from the measured intensity. 
+It characterizes the average size of the speckles, but it doesn't contain any information about the phase relation between two points. \\
+
+By contrast, the field correlation function
+
+\begin{equation}
+    \Gamma(\bm s) = \langle \bm E(\bm x)^* \cdot \bm E(\bm x + \bm s)\rangle, \qquad \gamma(\bm s) = \frac{\Gamma(\bm s)}{\langle |\bm E(\bm x)|^2 \rangle}
+\end{equation}
+
+also contains the information about the phase relation, but it cannot be computed from a direct measurement of the field. Instead, it is necessary to use 
+interferometry to obtain the necessary information about the average phase relation. 
+
+\subsection{Measuring the field correlation function} \label{meas_corr}
+
+Consider a double slit, neglecting for now the finite slit width effects, probing a $1$D speckle field. The far-field interference pattern is, for a slit 
+separation $s$,
+
+\begin{equation} \label{int_field}
+    E_{\text{screen}}(y) = E\left(-\frac s2\right)\frac{e^{ikr_1}}{r_1} + E\left(\frac s2\right)\frac{e^{ikr_2}}{r_2},
+\end{equation}
+
+where $k = 2\pi/\lambda$ and $r_{1, 2}$ is the distance of the point on the screen $y$ from the two slits. The approximation to first order
+$r_2 - r_1 = \sqrt{z^2 + (y - s/2)^2} - \sqrt{z^2 + (y + s/2)^2} \approx ys/2z$ is valid in the far-field regime ($z$ is the longitudinal propagation distance). 
+Going over to the averaged intensity, 
+
+\begin{equation}
+    \langle |E_{\text{screen}}(y)|^2 \rangle = \frac 2{z^2}\Gamma(0) + \frac 2{z^2} \Re \left\{ \left\langle E\left(-\frac s2\right)^*E\left(\frac s2\right) \right\rangle  \exp\left( \frac{2\pi}{\lambda z} ys \right) \right\},
+\end{equation}
+
+where $\Gamma(0) = \langle |E(-s/2)|^2 \rangle =  \langle |E(s/2)|^2 \rangle$ is the average intensity of the speckle field. In the expression there appears the field correlation 
+function $\Gamma(s) = |\Gamma(s)|e^{i\phi(s)}$. Therefore, modulo a $z^2$ factor,
+
+\begin{equation} \label{part_cor_patt}
+    \langle |E_{\text{screen}}(y)|^2 \rangle = 2 \, \Gamma(0) + 2 \, |\Gamma(s)| \cos\left[ \frac{2\pi}{\lambda z} sy + \phi(s) \right].
+\end{equation}
+
+The maximum intensity $I_{\text{max}}$ is attained when the cosine is $+1$, the minimum $I_{\text{min}}$ when the cosine is $-1$. Therefore 
+
+\begin{equation}\label{vis_formula}
+    \mathcal V = \frac{I_{\text{max}} - I_{\text{min}}}{I_{\text{max}} + I_{\text{min}}} = \frac{|\Gamma(s)|}{\Gamma(0)} = |\gamma(s)|.
+\end{equation}
+
+Finally, from the expression \eqref{part_cor_patt} it can be seen that the phase $\phi(s)$ of the correlation function determines the value of the pattern when 
+$y = 0$. Thus, if $\langle |E_{\text{screen}}(0)|^2 \rangle = I_{\text{min}}$, then $\phi(s) = \pi$ and $e^{i\phi(s)} = -1$; if 
+$\langle |E_{\text{screen}}(0)|^2 \rangle = I_{\text{max}}$, then $\phi(s) = 0$ and $e^{i\phi(s)} = +1$.
+
+\subsection{Finite slit width effects}
+
+In practice, the slits have a finite width (in the simulation it is of $a = 1 \, \mathrm{mm}$), and therefore the interference pattern is modulated by a certain 
+profile. In the case of coherent light, the profile is a $\mathrm{sinc}$ function (the diffraction pattern from a single slit), but in the case of partially 
+coherent light the profile is more complicated. The equation \eqref{int_field} becomes, taking into accout the finite width,
+
+\begin{equation}
+    E_{\text{screen}}(y) = \int_{-s/2-a/2}^{-s/2 + a/2} \mathrm dx \, E(x)\frac{e^{ikr(x)}}{r(x)} + \int_{s/2-a/2}^{s/2 + a/2} \mathrm dx \, E(x)\frac{e^{ikr(x)}}{r(x)},
+\end{equation}
+
+where $r(x) = \sqrt{z^2 + (y - x)^2}$. Without going over the whole calculation, the resulting pattern is, modulo a $z^2$ factor, 
+neglecting the partial coherence of the field in a single slit, and considering only the relevant frequencies ($\propto y$) in the integration,
+
+\begin{equation}
+    \begin{split}
+        \langle |E_{\text{screen}}(y)|^2 \rangle =& \ 2 \, \Gamma(0) \, a \, \mathrm{sinc}\left[ \frac{\pi a}{\lambda z} \left( y + \frac s2 \right) \right]^2 + \\
+        & \ 2 \, \Gamma(0) \, a \, \mathrm{sinc}\left[ \frac{\pi a}{\lambda z} \left( y - \frac s2 \right) \right]^2 + \\
+        & \ 4 \, |\Gamma(s)| \, a \, \cos\left[ \frac{2\pi}{\lambda z} sy + \phi(s) \right] \mathrm{sinc}\left[ \frac{\pi}{\lambda z} ya \right]^2.
+    \end{split}
+\end{equation}
+
+Actually, there are also the effects due to the partial coherence of the field over the span of a single slit; in the code, I accounted for those effects by 
+inserting a corrective multiplicative constant in the amplitude (this correction is only empirically justified).
+
+\subsection{Computing the field correlation function} \label{comp_corr}
+
+The spatial filtering of the speckle field determines its second order statistics by the Wiener-Khintchine theorem, which states that the two-point correlation 
+function is the fourier transform of the spectral density (which is proportional to the field in the focal plane of the spatial filter). Therefore, if $b$ denotes 
+the width of the filtering slit, and assuming an initially $\delta$-correlated field (so that its spectral density is a constant), it is easy to obtain eqn. 
+\eqref{rect-corr}. \\
+
+The software will also allow the option of a gaussian filtering. In that case, the field correlation function in the double slit plane would be 
+
+\begin{equation}
+    \gamma(s) = \exp\left[-\left(\frac{\pi bs}{\lambda f}\right)^2\right].
+\end{equation}
