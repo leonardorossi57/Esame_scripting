@@ -168,10 +168,10 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1):
         avg_intensity = float(f.read())
 
     def fit_up(vect, A, vis): # Function for fitting the upper profile
-        return 2 * A * avg_intensity * (np.sinc((vect + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + 2 * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 * vis )
+        return avg_intensity * 2 * A * (1 + vis) * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 * 5 * (slit_width / dx) ** 2/ (np.pi * 200)
     
     def fit_down(vect, A, vis): # Function for fitting the lower profile
-        return 2 * A * avg_intensity * (np.sinc((vect + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 - 2 * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 * vis )
+        return avg_intensity * 2 * A * (1 - vis) * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 * 5 * (slit_width / dx) ** 2/ (np.pi * 200)
 
     slits_dist = slits_dist / 10 # Convert lengths to cm
     slit_width = slit_width / 10
@@ -181,6 +181,9 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1):
 
     screen = pattern_data['screen'].to_numpy()
     pattern = pattern_data['pattern'].to_numpy()
+
+    
+    dx = screen[1] - screen[0]
 
     pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part (the approximation used for the fit only works for small y)
     screen_cut = screen[np.logical_and(screen >= -cut, screen <= cut)]
@@ -247,6 +250,8 @@ def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1):
     screen = pattern_data['screen'].to_numpy()
     pattern = pattern_data['pattern'].to_numpy()
 
+    dx = screen[1] - screen[0]
+
     fig1 = px.line(pattern_data, x = 'screen', y = 'pattern', labels = {
         'screen': 'x [cm]',
         'pattern': 'Field intensity'
@@ -277,8 +282,8 @@ def pre_process(pattern_data, slit_width, wavelen, dist_2, options, guess, A_1):
             with open('numbers.txt', 'r') as f:
                 avg_intensity = float(f.read())
             
-            prof_up = 2 * A_1 * avg_intensity * (np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((screen - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + 2 * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * guess )
-            prof_down = 2 * A_1 * avg_intensity * (np.sinc((screen + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((screen - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 - 2 * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * guess )
+            prof_up = avg_intensity * 2 * A_1 * (1 + guess) * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * 5 * (slit_width / dx) ** 2/ (np.pi * 200)
+            prof_down = avg_intensity * 2 * A_1 * (1 - guess) * np.sinc(screen * slit_width / (wavelen * dist_2)) ** 2 * 5 * (slit_width / dx) ** 2/ (np.pi * 200)
 
             guess_data = pd.DataFrame({
                 'screen': screen,
@@ -310,14 +315,16 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
         avg_intensity = float(f.read())
 
     def fit_up(vect): # Function for fitting the upper profile
-        return 2 * avg_intensity * (np.sinc((vect + slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc((vect - slits_dist/2) * slit_width / (wavelen * dist_2)) ** 2 + np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2)
-   
+        return avg_intensity * 4 * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 * 5 * (slit_width / dx) ** 2/ (np.pi * 200)
+    
     slits_dist = slits_dist / 10 # Convert lengths to cm
     slit_width = slit_width / 10
     wavelen = wavelen / 1e7 
 
     screen = pattern_data['screen'].to_numpy()
     pattern = pattern_data['pattern'].to_numpy()
+    
+    dx = screen[1] - screen[0]
 
     pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part (the approximation used for the fit only works for small y)
     screen_cut = screen[np.logical_and(screen >= -cut, screen <= cut)]
