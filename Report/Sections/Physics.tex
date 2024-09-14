@@ -69,15 +69,11 @@ coherent light the profile is more complicated. The equation \eqref{int_field} b
     E_{\text{screen}}(y) = \int_{-s/2-a/2}^{-s/2 + a/2} \mathrm dx \, E(x)\frac{e^{ikr(x)}}{r(x)} + \int_{s/2-a/2}^{s/2 + a/2} \mathrm dx \, E(x)\frac{e^{ikr(x)}}{r(x)},
 \end{equation}
 
-where $r(x) = \sqrt{z^2 + (y - x)^2}$. Without going over the whole calculation, the resulting pattern is, modulo a $z^2$ factor, 
-neglecting the partial coherence of the field in a single slit, and considering only the relevant frequencies ($\propto y$) in the integration,
+where $r(x) = \sqrt{z^2 + (y - x)^2}$. Without going over the whole calculation, the resulting pattern is, modulo a $z^2$ factor, and 
+neglecting the partial coherence of the field over a single slit,
 
-\begin{equation}
-    \begin{split}
-        \langle |E_{\text{screen}}(y)|^2 \rangle =& \ 2 \, \Gamma(0) \, a \, \mathrm{sinc}\left[ \frac{\pi a}{\lambda z} \left( y + \frac s2 \right) \right]^2 + \\
-        & \ 2 \, \Gamma(0) \, a \, \mathrm{sinc}\left[ \frac{\pi a}{\lambda z} \left( y - \frac s2 \right) \right]^2 + \\
-        & \ 4 \, |\Gamma(s)| \, a \, \cos\left[ \frac{2\pi}{\lambda z} sy + \phi(s) \right] \mathrm{sinc}\left[ \frac{\pi}{\lambda z} ya \right]^2.
-    \end{split}
+\begin{equation} \label{theopatt}
+    \langle |E_{\text{screen}}(y)|^2 \rangle = 2a^2 \Gamma(0) \, \mathrm{sinc}  \left( \frac{\pi a y}{\lambda z} \right)^2 \left[ 1 + |\gamma(s)| \cos\left( \frac{2\pi}{\lambda z}sy +\phi(s) \right) \right]
 \end{equation}
 
 Actually, there are also the effects due to the partial coherence of the field over the span of a single slit; in the code, I accounted for those effects by 
@@ -95,3 +91,4 @@ The software will also allow the option of a gaussian filtering. In that case, t
 \begin{equation}
     \gamma(s) = \exp\left[-\left(\frac{\pi bs}{\lambda f}\right)^2\right].
 \end{equation}
+
