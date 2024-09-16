@@ -334,9 +334,17 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
 
     patt_norm = pattern_cut/norm # Normalized pattern
 
+    pha = 0 # Phase of the correlation function
+    center = round(len(screen_cut) / 2) # Center of the screen
+
+    if patt_norm[center] > patt_norm[center + round(wavelen * dist_2 / (2 * slits_dist * dx))]: # In this case the center is a maximum
+        pha = 1
+    else:
+        pha = -1
+
     # Calculation of visibility
 
     vis = (np.max(patt_norm) - np.min(patt_norm)) / (np.max(patt_norm) + np.min(patt_norm)) 
     # The normalized pattern should be a sinusoid, so the maximum and the minimum are well defined
     
-    return round(vis, 3)
+    return round(vis, 3), pha

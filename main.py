@@ -778,19 +778,21 @@ def analyze(n_clicks, patt_name, guess, A_1):
         'patt_norm': 'Field intensity'
     })
 
-    if os.path.exists('vis_data.csv'):
-        vis_data = pd.read_csv('vis_data.csv')
+    if os.path.exists('corr_data.csv'):
+        vis_data = pd.read_csv('corr_data.csv')
         filt_wid = vis_data['filter_width'].to_numpy()
         sli_dis = vis_data['slits_dist'].to_numpy()
-        visib = vis_data['vis'].to_numpy()
+        visib = vis_data['corr'].to_numpy()
+        phase = vis_data['phase'].to_numpy()
         condition = np.logical_and(filt_wid == pattern_data['filter_width'][0], sli_dis == pattern_data['slits_dist'][0])
         visib[condition] = vis
         vis_data = pd.DataFrame({
             'slits_dist': sli_dis,
             'filter_width': filt_wid,
-            'vis': visib
+            'corr': visib,
+            'phase': phase
         })
-        vis_data.to_csv('vis_data.csv')
+        vis_data.to_csv('corr_data.csv')
 
 
     return  ['Visibility = {}'.format(vis)], fig_1, fig_2, ['Processing number {}'.format(n_clicks + 1)]
@@ -864,24 +866,27 @@ def analyze_all(set_progress, n_clicks):
     visib = []
     filter_width = []
     slits_dist = []
+    phase = []
     
     counter = 1
     for i in vect:
         data_temp = pd.read_csv('Patterns/' + i)
         slits_dist.append(round(data_temp['slits_dist'][0], 2))
         filter_width.append(round(data_temp['filter_width'][0], 2))
-        vis = mod.fast_process(data_temp, slit_width, wavelen, dist_2)
+        vis, pha = mod.fast_process(data_temp, slit_width, wavelen, dist_2)
         visib.append(vis)
+        phase.append(pha)
 
         set_progress((str(counter), str(num)))
                      
     data = pd.DataFrame({
         'slits_dist': slits_dist,
         'filter_width': filter_width,
-        'vis': visib
+        'corr': visib,
+        'phase': phase
     })
     
-    data.to_csv('vis_data.csv')
+    data.to_csv('corr_data.csv')
 
     # fig = px.scatter(data, x = 'slits_dist', y = 'vis', title = 'Visibility', color = 'filter_width')
 
@@ -897,10 +902,35 @@ def plot_all(n_clicks):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
-    vis_data = pd.read_csv('vis_data.csv')
-    fig = px.scatter(vis_data, x = 'slits_dist', y = 'vis', title = 'Visibility', color = 'filter_width', labels = {
+    vis_data = pd.read_csv('corr_data.csv')
+
+    # Convert to numpy
+    slits_dist = vis_data['slits_dist'].to_numpy()
+    filter_width = vis_data['filter_width'].to_numpy()
+    visib = vis_data['corr'].to_numpy()
+    phase = vis_data['phase'].to_numpy()
+
+    # Mirror the data by symmetry
+    s_dist = np.array(slits_dist)
+    slits_dist = np.concatenate((-np.flipud(s_dist), s_dist)) 
+    visibl = np.array(visib)
+    visib = np.concatenate((np.flipud(visibl), visibl))
+    phas = np.array(phase)
+    phase = np.concatenate((np.flipud(phas), phas))
+    f_width = np.array(filter_width)
+    filter_width = np.concatenate((np.flipud(f_width), f_width)) 
+
+    corr = (visib - 0.1) # * phase # Field correlation function
+
+    corr_data = pd.DataFrame({
+        'slits_dist': slits_dist,
+        'filter_width': filter_width,
+        'corr': corr
+    })
+
+    fig = px.scatter(corr_data, x = 'slits_dist', y = 'corr', title = 'Field correlation function', color = 'filter_width', labels = {
         'slits_dist': 'Slit separation [mm]',
-        'vis': 'Visibility'
+        'corr': 'Correlation'
     }) # FIND A WAY TO CHANGE THE COLOR
 
     return ['Plot number {}'.format(n_clicks + 1)], fig
