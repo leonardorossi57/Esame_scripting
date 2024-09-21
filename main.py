@@ -151,7 +151,7 @@ def serve_layout():
                     html.Br(),
                     html.Label(
                         # Input laser wavelength
-                        dcc.Markdown(r'> The wavelength is chosen to be $500 \, \mathrm{nm}$)', mathjax = True)
+                        dcc.Markdown(r'> The wavelength is chosen to be $500 \, \mathrm{nm}$', mathjax = True)
                     ),
                     html.Br(),
                     # Show chosen value on screeen
@@ -267,17 +267,15 @@ def serve_layout():
                     html.Br(),
                     html.Label(
                         # Input how much the spatial spectrum should be filtered
-                        dcc.Markdown(r'Filtering range ($\mathrm{cm}^{-1}$)', mathjax = True)
+                        dcc.Markdown(r'Width of filtering slit ($\mathrm{mm}$)', mathjax = True)
                     ),
-                    # I'm going to have a "screen dimension" of about x_M = 10 cm, with a resolution of dx = 0.02 cm, so the bounds in k-space are
-                    # k_M = pi/dx = 62.8 cm^(-1) with step dk = pi/x_M = 0.314
-                    # Note that here k = 2pi/lambda.
+                    
                     dcc.RangeSlider( 
-                        0.3,
-                        60.3,
-                        step = 2,
-                        value = [0.3, 10],
-                        marks = {str(x): str(x) for x in np.arange(10, 60, 10)},
+                        0.01,
+                        0.1,
+                        step = 0.01,
+                        value = [0.01, 0.05],
+                        marks = {str(x): str(x) for x in np.arange(0.01, 0.02, 0.1)},
                         id='filter-width'
                     ),
                     html.Br(),
@@ -559,7 +557,7 @@ def render(tab):
     Input('slits-dist', 'value'),
 )
 def update_values(a, b, c, d): 
-    return ['Generating {} fields'.format(a)], ['Rough glass with correlation length {}'.format(b) + r'$\, \mu\mathrm{m}$'], ['Filter width between {} and {}'.format(c[0], c[1]) + r'$\, \mathrm{cm}^{-1}$'], ['Slit separation between {} and {}'.format(d[0], d[1]) + r'$\, \mathrm{mm}$']
+    return ['Generating {} fields'.format(a)], ['Rough glass with correlation length {}'.format(b) + r'$\, \mu\mathrm{m}$'], ['Filter width between {} and {}'.format(c[0], c[1]) + r'$\, \mathrm{mm}$'], ['Slit separation between {} and {}'.format(d[0], d[1]) + r'$\, \mathrm{mm}$']
 
 @app.long_callback( 
     # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
@@ -658,7 +656,9 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, 
     dx = 0.005 # [cm] (resolution)
     dim = int(screen_size/dx) + 1 # Dimension of the arrays
 
-    filter_width_step = 2
+    filter_width_ext = [round(g * 2e5 * np.pi / wavelen, 2) for g in filter_width_ext]
+
+    filter_width_step = round(0.01 * 2e5 * np.pi / wavelen, 2)
     slits_dist_step = 0.5
 
     vect = os.listdir('Speckles')
@@ -684,7 +684,7 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, 
                 'screen': screen,
                 'pattern': pattern,
                 'filter_type': [filter_type for i in range(len(screen))],
-                'filter_width': [filter_width for i in range(len(screen))],
+                'filter_width': [round(filter_width, 2) for i in range(len(screen))],
                 'slits_dist': [slits_dist for i in range(len(screen))]
             }) # Convert to data frame
 
@@ -784,7 +784,7 @@ def analyze(n_clicks, patt_name, guess, A_1):
         sli_dis = vis_data['slits_dist'].to_numpy()
         visib = vis_data['corr'].to_numpy()
         phase = vis_data['phase'].to_numpy()
-        condition = np.logical_and(filt_wid == pattern_data['filter_width'][0], sli_dis == pattern_data['slits_dist'][0])
+        condition = np.logical_and(filt_wid == pattern_data['filter_width'][0], np.logical_or(sli_dis == pattern_data['slits_dist'][0], sli_dis == -pattern_data['slits_dist'][0]))
         visib[condition] = vis
         vis_data = pd.DataFrame({
             'slits_dist': sli_dis,
@@ -871,9 +871,16 @@ def analyze_all(set_progress, n_clicks):
     counter = 1
     for i in vect:
         data_temp = pd.read_csv('Patterns/' + i)
+        vis, pha = mod.fast_process(data_temp, slit_width, wavelen, dist_2)
+
         slits_dist.append(round(data_temp['slits_dist'][0], 2))
         filter_width.append(round(data_temp['filter_width'][0], 2))
-        vis, pha = mod.fast_process(data_temp, slit_width, wavelen, dist_2)
+        visib.append(vis)
+        phase.append(pha)
+
+        # Mirror the data by symmetry
+        slits_dist.append(-round(data_temp['slits_dist'][0], 2))
+        filter_width.append(round(data_temp['filter_width'][0], 2))
         visib.append(vis)
         phase.append(pha)
 
@@ -902,36 +909,41 @@ def plot_all(n_clicks):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
-    vis_data = pd.read_csv('corr_data.csv')
+    corr_data = pd.read_csv('corr_data.csv')
+    filter_width = corr_data['filter_width'].to_numpy()
+    slits_dist = corr_data['slits_dist'].to_numpy()
 
-    # Convert to numpy
-    slits_dist = vis_data['slits_dist'].to_numpy()
-    filter_width = vis_data['filter_width'].to_numpy()
-    visib = vis_data['corr'].to_numpy()
-    phase = vis_data['phase'].to_numpy()
+    M = np.max(slits_dist)
+    m = np.min(slits_dist)
 
-    # Mirror the data by symmetry
-    s_dist = np.array(slits_dist)
-    slits_dist = np.concatenate((-np.flipud(s_dist), s_dist)) 
-    visibl = np.array(visib)
-    visib = np.concatenate((np.flipud(visibl), visibl))
-    phas = np.array(phase)
-    phase = np.concatenate((np.flipud(phas), phas))
-    f_width = np.array(filter_width)
-    filter_width = np.concatenate((np.flipud(f_width), f_width)) 
+    x_axis = np.linspace(m, M, 500)
 
-    corr = (visib - 0.1) # * phase # Field correlation function
+    theo = [x_axis]
+    cols = ['x_axis']
 
-    corr_data = pd.DataFrame({
-        'slits_dist': slits_dist,
-        'filter_width': filter_width,
-        'corr': corr
-    })
+    for f in set(filter_width):
+        theo.append(np.abs(np.sinc(f * x_axis / (20 * np.pi))))
+        cols.append(str(f))
 
-    fig = px.scatter(corr_data, x = 'slits_dist', y = 'corr', title = 'Field correlation function', color = 'filter_width', labels = {
+    corr_theo = pd.DataFrame(columns = cols, data = np.transpose(np.array(theo)))
+
+    fig_1 = px.scatter(corr_data, x = 'slits_dist', y = 'corr', title = 'Field correlation function', color = 'filter_width', labels = {
         'slits_dist': 'Slit separation [mm]',
-        'corr': 'Correlation'
-    }) # FIND A WAY TO CHANGE THE COLOR
+        'corr': 'Correlation',
+        'filter_width': 'Filter width'
+    }) 
+    # FIND A WAY TO CHANGE THE COLOR
+
+    fig_2 = px.line(corr_theo.melt(id_vars = 'x_axis', value_vars = cols[1:]), x = 'x_axis', y = 'value', line_group = 'variable', color = 'variable')
+    fig_2.update_traces(line = dict(color = 'rgba(50,50,50,0.2)'))
+
+    fig = go.Figure(data = fig_1.data + fig_2.data, layout = fig_1.layout)
+
+    fig.update_layout(title = go.layout.Title(text = 'Field correlation function'), 
+                      xaxis = go.layout.XAxis(title = go.layout.xaxis.Title(text = 'Slit separation [mm]')),
+                      yaxis = go.layout.YAxis(title = go.layout.yaxis.Title(text = 'Correlation function')),
+                      legend_visible = False
+    )
 
     return ['Plot number {}'.format(n_clicks + 1)], fig
 
