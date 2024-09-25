@@ -4,7 +4,7 @@ from scipy.fft import fft, ifft, fftshift, ifftshift
 from scipy.optimize import curve_fit, minimize
 import plotly.express as px
 
-def generate_speckle_field(corr, source_size, dist, scatt_num, wavelen): # Use, for the first field, a "monte carlo" method
+def generate_speckle_field(source_size, dist, scatt_num, wavelen): # Use, for the first field, a "monte carlo" method
     """ Generate a numpy array containing a one-dimensional speckle field using a monte carlo randomization
     Arguments:
         corr: correlation length of the source in [um]
@@ -16,10 +16,12 @@ def generate_speckle_field(corr, source_size, dist, scatt_num, wavelen): # Use, 
         (field, screen): tuple of a numpy array containing the speckle field and a numpy array containing the coordinates of the points on the screen in [cm]
     """
 
-    corr = corr / 1e4 # Convert lengths to cm
+    # corr = corr / 1e4 # Convert lengths to cm
+
+    corr = 0
     wavelen = wavelen / 1e7
 
-    screen_size = 20 # [cm] (section of the beam under analysis)
+    screen_size = 30 # [cm] (section of the beam under analysis)
     dx = 0.005 # [cm] (resolution)
     dim = int(screen_size/dx) + 1 # Dimension of the arrays
     field = np.zeros(dim, dtype = complex) # Array containing the speckle field
@@ -57,7 +59,7 @@ def filter(filter_type, field, filter_width):
         filt_field: numpy array containing the filtered field
     """
 
-    screen_size = 20 # [cm] (section of the beam under analysis)
+    screen_size = 30 # [cm] (section of the beam under analysis)
     dx = 0.005 # [cm] (resolution)
         
     kspace_size = 2 * np.pi/dx
@@ -75,7 +77,7 @@ def filter(filter_type, field, filter_width):
         filt_field = ifft(ifftshift(transf))
     else:
         # Do what explained above
-        profile = np.exp(-(kspace / filter_width) ** 2)
+        profile = np.exp(-(kspace / filter_width) ** 2 / 2)
         transf = fftshift(fft(field))
         transf = transf * profile
 
@@ -161,7 +163,7 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1):
         the normalized pattern and the screen; the numerical value of the visibility.
     """
 
-    cut = 2.5 # [cm]
+    cut = 15 # [cm]
     slits_dist = pattern_data['slits_dist'][0]
     filter_width = pattern_data['filter_width'].to_numpy()[0]
 
@@ -310,16 +312,10 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
         vis: the numerical value of the visibility
     """
 
-    cut = 2.5 # [cm]
+    cut = 15 # [cm]
     slits_dist = pattern_data['slits_dist'][0]
     filter_width = pattern_data['filter_width'].to_numpy()[0]
 
-    with open('numbers.txt', 'r') as f:
-        avg_intensity = float(f.read())
-
-    def fit_up(vect): # Function for fitting the upper profile
-        return avg_intensity * 4 * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 * (slit_width / dx) ** 2 * (filter_width * dx) / (np.pi * 2)
-    
     slits_dist = slits_dist / 10 # Convert lengths to cm
     slit_width = slit_width / 10
     wavelen = wavelen / 1e7 
@@ -332,15 +328,17 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
     pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part (the approximation used for the fit only works for small y)
     screen_cut = screen[np.logical_and(screen >= -cut, screen <= cut)]
 
-    mpoint = screen_cut[pattern_cut == np.max(pattern_cut)][0]
-    norm = fit_up(screen_cut) * np.max(pattern_cut) / (fit_up(mpoint))
+    def fit_up(vect): # Function for fitting the upper profile
+        return np.max(pattern_cut) * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 
+
+    norm = fit_up(screen_cut) 
 
     patt_norm = pattern_cut/norm # Normalized pattern
 
     pha = 0 # Phase of the correlation function
     center = round(len(screen_cut) / 2) # Center of the screen
 
-    if patt_norm[center] > patt_norm[center + round(wavelen * dist_2 / (2 * slits_dist * dx))]: # In this case the center is a maximum
+    if patt_norm[center] > patt_norm[center + round(wavelen * dist_2 / (slits_dist * dx))]: # In this case the center is a maximum
         pha = 1
     else:
         pha = -1
@@ -351,3 +349,19 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
     # The normalized pattern should be a sinusoid, so the maximum and the minimum are well defined
     
     return round(vis, 3), pha
+
+def FWHM(vect, x_axis):
+    """ Calculate the FWHM of a peaked function
+    Arguments:
+        vect: numpy array containing the y coordinates of the function graph
+        x_axis: numpy array containing the x coordinates of the function graph
+    Returns:
+        FWHM: width of the function peak calculated as the full width at half maximum
+    """
+    FW = x_axis[vect >= 0.5]
+    if FW.size:
+        FWHM = FW[-1] - FW[0]
+    else:
+        FWHM = 0
+
+    return FWHM

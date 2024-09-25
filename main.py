@@ -57,13 +57,13 @@ def serve_layout():
                                  
                         > First, the code generates a certain number of 1D speckle fields, and each field is 
                         then spatially filtered to produce a partially coherent field. The number of fields and the type of filtering may be selected 
-                        in the boxes below. Since in the physical experiment the speckle field is produced by a rough glass surface which might have 
-                        a non-negligible correlation length, it's also possible to generate fields which take that into account.  
+                        in the boxes below.   
                                  
                         > In the second part, the code simulates the production of Young interference fringes by passage of the (filtered) field through 
                         a double slit. It is expected that the visibility of the average pattern (i.e., the correlation length of the filtered field) should 
                         be related to the amount of spatial filtering. 
                     """)
+                    # Since in the physical experiment the speckle field is produced by a rough glass surface which might have a non-negligible correlation length, it's also possible to generate fields which take that into account.
                 ],
                 className = 'box_blue'),
             ],
@@ -189,24 +189,7 @@ def serve_layout():
                         # first part, and this should minimize spurious effects due to the source form and sharp edges. 
                         dcc.Markdown(r'The speckle field is generated with a monte carlo randomization, with $1000$ points on the source', mathjax = True)
                     ),
-                    html.Br(),
-                    html.Label(
-                        # Input the correlation length of the surface. 
-                        dcc.Markdown(r'Input the correlation length of the rough glass surface ($\mu\mathrm{m}$)', mathjax = True)
-                    ),
-                    dcc.Slider(
-                        0,
-                        30,
-                        step = 1,
-                        value = 0,
-                        marks = {str(x): str(x) for x in np.arange(0, 30, 10)},
-                        id='correlation-length'
-                    ),
-                    html.Br(),
-                    # Show chosen value on screen
-                    html.Div([
-                        dcc.Markdown(id = 'correlation-length-out', mathjax = True)
-                    ]),
+                    
                 ],
                 className = 'right'
                 ),
@@ -300,10 +283,10 @@ def serve_layout():
                         dcc.Markdown(r'Distance between slits range ($\mathrm{mm}$)', mathjax = True)
                     ),
                     dcc.RangeSlider( 
-                        2,
-                        20,
-                        step = 0.5,
-                        value = [4, 10],
+                        0.5,
+                        10,
+                        step = 0.1,
+                        value = [0.5, 10],
                         marks = {str(x): str(x) for x in np.arange(5, 20, 5)},
                         id='slits-dist'
                     ),
@@ -315,7 +298,7 @@ def serve_layout():
                     html.Br(),
                     # Input slit width 
                     html.Label(
-                        dcc.Markdown(r'The slits are 1 $\mathrm{mm}$ wide', mathjax = True)
+                        dcc.Markdown(r'The slits are 200 $\mu\mathrm{m}$ wide', mathjax = True)
                     ),
                 ],
                 className = 'right_green'
@@ -467,7 +450,7 @@ def serve_layout():
                     ],
                     className = 'start'
                     ),
-                    html.H3(children = 'PLOT'),
+                    html.H3(children = 'PLOT VISIBILITY'),
                     html.Div([
                         html.Button(id='plot-all-button', children = 'Plot')
                     ],
@@ -475,6 +458,17 @@ def serve_layout():
                     ),
                     html.Div([
                         html.P(id='counter-plot-all', children = 'Plot number 1')
+                    ],
+                    className = 'start'
+                    ),
+                    html.H3(children = 'PLOT CORRELATION LENGTH VS FILTER WIDTH'),
+                    html.Div([
+                        html.Button(id='plot-cvf-button', children = 'Plot')
+                    ],
+                    className = 'start'
+                    ),
+                    html.Div([
+                        html.P(id='counter-plot-cvf', children = 'Plot number 1')
                     ],
                     className = 'start'
                     ),
@@ -509,9 +503,10 @@ def serve_layout():
             ]),
 
             html.Div(children = [
-                dcc.Graph(id = 'graph-all', style={'width': '1400px', 'height': '800px'}, mathjax = True),
+                dcc.Graph(id = 'graph-all', style={'width': '700px', 'height': '400px'}, mathjax = True),
+                dcc.Graph(id = 'graph-cvf', style={'width': '700px', 'height': '400px'}, mathjax = True),
             ],
-            className = 'graph'
+            style = {'width': '1400px', 'height': '400px', 'display': 'flex', 'background-color': '#000000', 'padding-top': '10px', 'padding-right': '10px', 'padding-bottom': '10px', 'padding-left': '10px', 'margin-top': '10px'}
             ),
 
         ],
@@ -548,16 +543,16 @@ def render(tab):
 
 @callback( # This serves to return the values selected in the sliders
     Output('field-number-out', 'children'),
-    Output('correlation-length-out', 'children'),
+    # Output('correlation-length-out', 'children'),
     Output('filter-width-out', 'children'),
     Output('slits-dist-out', 'children'),
     Input('field-number', 'value'),
-    Input('correlation-length', 'value'),
+    # Input('correlation-length', 'value'),
     Input('filter-width', 'value'),
     Input('slits-dist', 'value'),
 )
-def update_values(a, b, c, d): 
-    return ['Generating {} fields'.format(a)], ['Rough glass with correlation length {}'.format(b) + r'$\, \mu\mathrm{m}$'], ['Filter width between {} and {}'.format(c[0], c[1]) + r'$\, \mathrm{mm}$'], ['Slit separation between {} and {}'.format(d[0], d[1]) + r'$\, \mathrm{mm}$']
+def update_values(a, c, d): 
+    return ['Generating {} fields'.format(a)], ['Filter width between {} and {}'.format(c[0], c[1]) + r'$\, \mathrm{mm}$'], ['Slit separation between {} and {}'.format(d[0], d[1]) + r'$\, \mathrm{mm}$']
 
 @app.long_callback( 
     # This is the callback for the first simulation. Long callback since for regular callbacks there's a max time of 30 s.
@@ -569,7 +564,7 @@ def update_values(a, b, c, d):
         Input('part-one-button', 'n_clicks'), # The only input is the click of the 'start' button
         # The other parameters are passed as states, so changing them does not trigger the start of the simulation,
         State('field-number', 'value'),
-        State('correlation-length', 'value'),
+        # State('correlation-length', 'value'),
     ],
     running=[ # When the simulation is running,
         (Output('part-one-button', 'disabled'), True, False), # The start button is disabled
@@ -589,7 +584,7 @@ def update_values(a, b, c, d):
     progress = [Output('progress-bar-one', 'value'), Output('progress-bar-one', 'max')], # Link to progress bar id
     manager = long_callback_manager
 )
-def generate_fields(set_progress, n_clicks, field_num, corr):
+def generate_fields(set_progress, n_clicks, field_num):
     if n_clicks is None:
         raise exceptions.PreventUpdate() # This is necessary in order for the simulation not to start automatically upon launching the app
     
@@ -600,7 +595,7 @@ def generate_fields(set_progress, n_clicks, field_num, corr):
     avg_intensity = 0
 
     for i in range(field_num):
-        field, screen = mod.generate_speckle_field(corr, source_size, dist, scatt_num, wavelen) # Generate a field
+        field, screen = mod.generate_speckle_field(source_size, dist, scatt_num, wavelen) # Generate a field
         avg_intensity += np.mean(np.abs(field).real ** 2)
         field_data = pd.DataFrame({
             'screen': screen, 
@@ -649,10 +644,10 @@ def filter_and_interfere(set_progress, n_clicks, filter_type, filter_width_ext, 
     if n_clicks is None:
         raise exceptions.PreventUpdate()
 
-    slit_width = 1
+    slit_width = 0.2
     dist_2 = 1e4
     wavelen = 500
-    screen_size = 20 # [cm] 
+    screen_size = 30 # [cm] 
     dx = 0.005 # [cm] (resolution)
     dim = int(screen_size/dx) + 1 # Dimension of the arrays
 
@@ -756,7 +751,7 @@ def analyze(n_clicks, patt_name, guess, A_1):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
     
-    slit_width = 1 # [mm]
+    slit_width = 0.2 # [mm]
     wavelen = 500 # [nm]
     dist_2 = 1e4 # [cm]
 
@@ -790,7 +785,8 @@ def analyze(n_clicks, patt_name, guess, A_1):
             'slits_dist': sli_dis,
             'filter_width': filt_wid,
             'corr': visib,
-            'phase': phase
+            'phase': phase,
+            'filter_type': [pattern_data['filter_type'][0] for i in range(len(sli_dis))]
         })
         vis_data.to_csv('corr_data.csv')
 
@@ -810,7 +806,7 @@ def pre_process(n_clicks, options, guess, A_1, patt_name):
     if n_clicks is None:
         raise exceptions.PreventUpdate()
 
-    slit_width = 1 # [mm]
+    slit_width = 0.2 # [mm]
     wavelen = 500 # [nm]
     dist_2 = 1e4 # [cm]
 
@@ -859,7 +855,7 @@ def analyze_all(set_progress, n_clicks):
     vect = os.listdir('Patterns')
     num = len(vect)
 
-    slit_width = 1 # [mm]
+    slit_width = 0.2 # [mm]
     wavelen = 500 # [nm]
     dist_2 = 1e4 # [cm]
 
@@ -890,7 +886,8 @@ def analyze_all(set_progress, n_clicks):
         'slits_dist': slits_dist,
         'filter_width': filter_width,
         'corr': visib,
-        'phase': phase
+        'phase': phase,
+        'filter_type': [data_temp['filter_type'][0] for i in range(len(slits_dist))]
     })
     
     data.to_csv('corr_data.csv')
@@ -900,7 +897,7 @@ def analyze_all(set_progress, n_clicks):
     return ['Analysis number {}'.format(n_clicks + 1)]
 
 @callback(
-    # Callback for analysis of a single field
+    # Callback for plotting the correlation functions
     Output('counter-plot-all', 'children'),
     Output('graph-all', 'figure'),
     Input('plot-all-button', 'n_clicks'), # Input the button click, other parameters are states
@@ -922,7 +919,10 @@ def plot_all(n_clicks):
     cols = ['x_axis']
 
     for f in set(filter_width):
-        theo.append(np.abs(np.sinc(f * x_axis / (20 * np.pi))))
+        if corr_data['filter_type'][0] == 'Rectangular':
+            theo.append(np.abs(np.sinc(f * x_axis / (20 * np.pi))))
+        else:
+            theo.append(np.exp(-2 * (f * x_axis / (20)) ** 2))
         cols.append(str(f))
 
     corr_theo = pd.DataFrame(columns = cols, data = np.transpose(np.array(theo)))
@@ -944,6 +944,51 @@ def plot_all(n_clicks):
                       yaxis = go.layout.YAxis(title = go.layout.yaxis.Title(text = 'Correlation function')),
                       legend_visible = False
     )
+
+    return ['Plot number {}'.format(n_clicks + 1)], fig
+
+@callback(
+    # Callback for plotting the correlation length versus the filter width
+    Output('counter-plot-cvf', 'children'),
+    Output('graph-cvf', 'figure'),
+    Input('plot-cvf-button', 'n_clicks'), # Input the button click, other parameters are states
+)
+def plot_cvf(n_clicks):
+    if n_clicks is None:
+        raise exceptions.PreventUpdate()
+    
+    wavelen = 500 # [nm]
+    dist_2 = 1e4 # [cm]
+    
+    corr_data = pd.read_csv('corr_data.csv')
+    filter_width = corr_data['filter_width'].to_numpy()
+    corr = corr_data['corr'].to_numpy()
+    slits_dist = corr_data['slits_dist'].to_numpy()
+
+    fw = []
+    cl = []
+
+    for f in set(filter_width):
+        temp_corr = corr[filter_width == f]
+        temp_sl = slits_dist[filter_width == f]
+
+        # Sort the arrays properly
+        ind = np.argsort(temp_sl)
+        temp_sl = temp_sl[ind]
+        temp_corr = temp_corr[ind]
+
+        cl.append(mod.FWHM(temp_corr, temp_sl) * 10) # Convert to mm
+        fw.append((wavelen * 1e-7 * f * 100/ (2 * np.pi))) # Convert to mm
+
+    df = pd.DataFrame({
+        'filter_width': fw,
+        'corr_length': cl 
+    })
+
+    fig = px.scatter(df, x = 'corr_length', y = 'filter_width', title = 'Inverse relation between correlation length and filter width', labels = {
+        'corr_length': 'Correlation length [mm]',
+        'filter_width': 'Filter width [mm]'
+    })
 
     return ['Plot number {}'.format(n_clicks + 1)], fig
 

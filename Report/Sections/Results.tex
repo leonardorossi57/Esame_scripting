@@ -18,8 +18,9 @@ function is calculated neglecting the effects of partial coherence over each ind
 There are three main effects which in principle have to be taken into account, as can be seen in the figure: 
 the modulation of the cosine (due to the finite width of the slits), the loss of visibility (due to the partial coherence between the field amplitudes at the two slits) 
 and, as noted above, 
-an overall reduction of the intensity if compared with coherent light (due to the partial coherence over the two individual slits). This last feature is accounted 
-for by inserting a multiplicative constant as an additional parameter in the fit.
+an overall reduction of the intensity if compared with coherent light, as well as a slight widening of the modulating 
+function (due to the partial coherence over the two individual slits). This last two features are accounted 
+for by inserting two phenomenological parameters in the fit: a horizontal and a vertical dilaton constant.
 \begin{figure}[!ht]
     \centering
     \includegraphics[width = .8\textwidth]{Img/output.png}
@@ -55,3 +56,34 @@ to the lower pattern). This is shown in figures \ref{data_an_1} and \ref{data_an
     \label{data_an_2}
 \end{figure}
 
+\subsection{Visibility curve and phase}
+
+The visibility curve (i.e. the absolute value of the field correlation function) for a sample rectangular spatial filtering is 
+shown in figure \ref{vis_f}, alongside the theoretical correlation function \eqref{rect-corr}.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width = \textwidth]{Img/vis.png}
+    \caption{Visibility curve for rectangular filtering}
+    \label{vis_f}
+\end{figure}
+
+In order to determine the correlation function, it is necessary to know the absolute value (the visibility) as well as the phase. The latter is either $+1$ or 
+$-1$, depending on wether the center of the pattern is a maximum or a minimum (these two possibilities are shown in figure \ref{swap}). 
+
+\begin{figure}[!ht]
+    \centering
+    \begin{subfigure}[]{0.49\textwidth}
+        \includegraphics[width = \textwidth]{Img/patt_1.png}
+        \caption{Phase $+1$}
+        \label{patt-1}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[]{0.49\textwidth}
+        \includegraphics[width = \textwidth]{Img/patt_2.png}
+        \caption{Phase $-1$}
+        \label{patt-2}
+    \end{subfigure}
+    \caption{The maxima and the minima swap each time the visibility becomes zero}
+    \label{swap}
+\end{figure}
