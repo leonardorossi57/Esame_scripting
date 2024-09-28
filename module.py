@@ -185,7 +185,6 @@ def process_pattern(pattern_data, slit_width, wavelen, dist_2, guess, A_1):
     screen = pattern_data['screen'].to_numpy()
     pattern = pattern_data['pattern'].to_numpy()
 
-    
     dx = screen[1] - screen[0]
 
     pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part (the approximation used for the fit only works for small y)
@@ -316,24 +315,52 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
     slits_dist = pattern_data['slits_dist'][0]
     filter_width = pattern_data['filter_width'].to_numpy()[0]
 
+    with open('numbers.txt', 'r') as f:
+        avg_intensity = float(f.read())
+
+    def fit_up(vect, A, B, vis): # Function for fitting the upper profile
+        return avg_intensity * 2 * A * (1 + vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * (slit_width / dx) ** 2 * (filter_width * dx) / (np.pi * 2)
+    
+    def fit_down(vect, A, B, vis): # Function for fitting the lower profile
+        return avg_intensity * 2 * A * (1 - vis) * np.sinc(B * vect * slit_width / (wavelen * dist_2)) ** 2 * (slit_width / dx) ** 2 * (filter_width * dx) / (np.pi * 2)
+
     slits_dist = slits_dist / 10 # Convert lengths to cm
     slit_width = slit_width / 10
     wavelen = wavelen / 1e7 
 
+    tolerance = 0.1 # [cm] (consider adding this as an input)
+
     screen = pattern_data['screen'].to_numpy()
     pattern = pattern_data['pattern'].to_numpy()
-    
+
     dx = screen[1] - screen[0]
 
     pattern_cut = pattern[np.logical_and(screen >= -cut, screen <= cut)] # Cut away uninteresting part (the approximation used for the fit only works for small y)
     screen_cut = screen[np.logical_and(screen >= -cut, screen <= cut)]
 
-    def fit_up(vect): # Function for fitting the upper profile
-        return np.max(pattern_cut) * np.sinc(vect * slit_width / (wavelen * dist_2)) ** 2 
+    patt_max, patt_min = calc_extremal(pattern, screen, tolerance)
 
-    norm = fit_up(screen_cut) 
+    def func_1(xx):
+        aa, bb, v = xx[0], xx[1], xx[2]
+        return np.mean((fit_up(screen[patt_max], aa, bb, v) - pattern[patt_max]) ** 2) + np.mean((fit_down(screen[patt_min], aa, bb, v) - pattern[patt_min]) ** 2)
+    
+    res = minimize(func_1, x0 = [1, 1, 0.5])
+    popt = res.x
+
+    # popt_up, pcov_up = curve_fit(fit_up, screen_cut[patt_max], pattern_cut[patt_max], p0 = (guess, A_1))
+    # popt_down, pcov_up = curve_fit(fit_down, screen_cut[patt_min], pattern_cut[patt_min], p0 = (guess, A_2))
+
+    patt_up = fit_up(screen, *popt)
+    patt_down = fit_down(screen, *popt)
+
+    norm = fit_up(screen_cut, *popt)
 
     patt_norm = pattern_cut/norm # Normalized pattern
+
+    # Calculation of visibility
+
+    vis = (np.max(patt_norm) - np.min(patt_norm)) / (np.max(patt_norm) + np.min(patt_norm)) 
+    # The normalized pattern should be a sinusoid, so the maximum and the minimum are well defined
 
     pha = 0 # Phase of the correlation function
     center = round(len(screen_cut) / 2) # Center of the screen

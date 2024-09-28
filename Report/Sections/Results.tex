@@ -36,26 +36,20 @@ function is exactly the absolute value of the normalized field correlation funct
 length $\Delta l$ as the FWHM (or another width measure) of the correlation function. The dependence on the spectral density width $\Delta k$ allows then to 
 verify the inverse proportionality between $\Delta l$ and $\Delta k$. \\
 
-The automatic analysis of all the interference patterns is carried out by first dividing each one by the modulating function, suitably normalized, in order 
-to obtain a nearly (co)sinusoidal pattern (like in figure \ref{data_an_2}); the visibility can then be calculated using eqn. \eqref{vis_formula}. 
-It is also possible to consider an individual pattern at a time: in this case, the interface allows to choose the initial parameters in order to perform a 
-fit of both the upper and lower profile of the interference pattern (the local maxima of the pattern belong to the upper profile and the local minima belong 
-to the lower pattern). This is shown in figures \ref{data_an_1} and \ref{data_an_2}
+The automatic analysis of all the interference patterns is carried out by fitting the upper and lower profile of the interference pattern (the local maxima of the pattern belong to the upper profile and the local minima belong 
+to the lower pattern) with the modulating function of eqn. \eqref{theopatt}. In order to adjust for the effect of partial coherence over a single slit, two additional 
+parameters are added to the fit, as mentioned above: a horizontal and a vertical dilaton constant. Normalizing the pattern by the profilation thus calculated, 
+a nearly (co)sinusoidal pattern results (like in figure \ref{data_an}); the visibility can then be calculated using eqn. \eqref{vis_formula}. 
+It is also possible to consider an individual pattern at a time: in this case, the interface allows to choose the initial parameters fot the fit. 
+This is shown in figure \ref{data_an}.
 
 \begin{figure}[!ht]
     \centering
     \includegraphics[width = \textwidth]{Img/an_11.png}
-    \caption{Data analysis interface}
-    \label{data_an_1}
-\end{figure}
-
-\begin{figure}[!ht]
-    \centering
     \includegraphics[width = \textwidth]{Img/an_22.png}
     \caption{Data analysis interface}
-    \label{data_an_2}
+    \label{data_an}
 \end{figure}
-
 \subsection{Visibility curve and phase}
 
 The visibility curve (i.e. the absolute value of the field correlation function) for a sample rectangular spatial filtering is 
@@ -86,4 +80,17 @@ $-1$, depending on wether the center of the pattern is a maximum or a minimum (t
     \end{subfigure}
     \caption{The maxima and the minima swap each time the visibility becomes zero}
     \label{swap}
+\end{figure}
+
+\subsection{Relation between \texorpdfstring{$\Delta l$}{dl} and \texorpdfstring{$\Delta k$}{dk}}
+
+To each value of the width $\Delta k$ of the filtering slit there corresponds a different width $\Delta l$  of the filtered speckle field's correlation function. 
+These two quantities are inversely proportional, and this can be directly verified from the simulation. This is just a well-known consequence case of the fourier transform 
+relation between the spectral density and the correlation function (the Wiener-Kintchine theorem).
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width = \textwidth]{Img/inv.png}
+    \caption{Inverse proportionality between $\Delta l$ and $\Delta k$}
+    \label{inv}
 \end{figure}
