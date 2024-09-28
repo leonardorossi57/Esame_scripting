@@ -350,8 +350,8 @@ def fast_process(pattern_data, slit_width, wavelen, dist_2):
     # popt_up, pcov_up = curve_fit(fit_up, screen_cut[patt_max], pattern_cut[patt_max], p0 = (guess, A_1))
     # popt_down, pcov_up = curve_fit(fit_down, screen_cut[patt_min], pattern_cut[patt_min], p0 = (guess, A_2))
 
-    patt_up = fit_up(screen, *popt)
-    patt_down = fit_down(screen, *popt)
+    # patt_up = fit_up(screen, *popt)
+    # patt_down = fit_down(screen, *popt)
 
     norm = fit_up(screen_cut, *popt)
 
